@@ -4,7 +4,7 @@
 
 ## Overview
 
-Javarominoes is a Java-based tetris-inspired game that combines classic puzzle gameplay with a carefully calibrated difficulty progression. This project features unique random piece generation mechanics, a challenging score-to-speed relationship, and a clean, modular structure that makes it easy to extend and maintain. The game was built entirely in Java, relying only on core JDK features, and packaged into a runnable JAR file. As such, if you have the JRE installed, you should be able to simply double-click the 'Javarominoes.jar' file and it will fire up. There isn't much to speak of in terms of supplemental GUI at the moment, although I am considering adding in a menu and high-scores.
+Javarominoes is a Java-based tetris-inspired game that combines classic puzzle gameplay with a carefully calibrated difficulty progression. This project features unique random piece generation mechanics, a challenging score-to-speed relationship, and a clean, modular structure that makes it easy to extend and maintain. The game was built entirely in Java, relying only on core JDK features, and packaged into a runnable JAR file. As such, if you have the JRE installed, you should be able to simply double-click the '`Javarominoes.jar`' file and it will fire up. There isn't much to speak of in terms of supplemental GUI at the moment, although I am considering adding in a menu and high-scores.
 
 ## Features
 **Piece Generation**: I've implemented the "bag" method for random piece generation, ensuring a balanced distribution of all tetrominoes throughout gameplay. An array holds all 7 of the pieces, which I shuffle using the Fisher-Yates algorithm. The program will iterate through the list after every new piece is generated, and after we reach the end, the array is repopulated and reshuffled. Thus, the longest possible 'drought' between identical pieces is 13.
@@ -18,15 +18,15 @@ Javarominoes is a Java-based tetris-inspired game that combines classic puzzle g
 ## Architecture
 Javarominoes is designed with modularity and maintainability in mind. Here is a breakdown of the core classes and how they contribute to the game:
 
-`Pieces`: Manages all the data for the seven tetrominoes, including their different rotations. It stores piece configurations in a 4D array (`matrix`) and includes methods for retrieving specific block data and determining initial piece offsets.
+**`Pieces`**: Manages all the data for the seven tetrominoes, including their different rotations. It stores piece configurations in a 4D array (`matrix`) and includes methods for retrieving specific block data and determining initial piece offsets.
 
-`Board`: Represents the main game grid where pieces are placed. This class manages the core gameplay mechanics like placing pieces, clearing lines, and detecting game-over conditions. It directly communicates with `GamePanel` to reflect game state changes.
+**`Board`**: Represents the main game grid where pieces are placed. This class manages the core gameplay mechanics like placing pieces, clearing lines, and detecting game-over conditions. It directly communicates with `GamePanel` to reflect game state changes.
 
-`BoardPanel`: Responsible for rendering the board visually. It updates based on the current state managed by `GamePanel`, ensuring that each move or line clear is instantly represented on-screen.
+**`BoardPanel`**: Responsible for rendering the board visually. It updates based on the current state managed by `GamePanel`, ensuring that each move or line clear is instantly represented on-screen.
 
-`InfoPanel`: Displays key information like the player's current score. It plays a crucial role in score management, interacting with GamePanel to ensure that the score updates in response to in-game events like line clears and successful piece drops.
+**`InfoPanel`**: Displays key information like the player's current score. It plays a crucial role in score management, interacting with GamePanel to ensure that the score updates in response to in-game events like line clears and successful piece drops.
 
-`GamePanel`: The central hub that manages game state, user input, and interactions between other components. It handles piece generation (`generateNewPiece()`), movements (`movePiece()`, `movePieceDown()`, `rotateCW()`), and collisions (`checkCollision()`). It also manages the game's timing and difficulty progression (`shortenTTDInterval()`). _`GamePanel` is in charge of delegating tasks to `BoardPanel` and `InfoPanel` for proper rendering and score updating_.
+**`GamePanel`**: The central hub that manages game state, user input, and interactions between other components. It handles piece generation (`generateNewPiece()`), movements (`movePiece()`, `movePieceDown()`, `rotateCW()`), and collisions (`checkCollision()`). It also manages the game's timing and difficulty progression (`shortenTTDInterval()`). _`GamePanel` is in charge of delegating tasks to `BoardPanel` and `InfoPanel` for proper rendering and score updating_.
 
 **`Javarominoes`** **(Main Class)**: Serves as the entry point of the game. It initializes all components (`GamePanel`, `BoardPanel`, `InfoPanel`) and sets up the game's main window. Javarominoes ensures that all aspects of the game are properly initialized and interconnected, ready for gameplay.
 
