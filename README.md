@@ -38,7 +38,7 @@ Goal: The goal is to clear as many lines as possible by strategically placing pi
 Scoring: Points are awarded based on piece movement, full drops, and line clears. The more lines you clear at once, the higher the score multiplier.
 
 ## Motivation
-I built this project as a tribute to the original Tetris game, which I grew up playing a lot on an original release-model GameBoy at my Granddad's house. I could never beat his high-scores, he honestly was really good! After he passed, I wanted to honor all of the love he brought into my life by making something I know he would've really appreciated. This one's for you, Roy.
+I built this project as a tribute to the original Tetris game, which I grew up playing a lot on an original release-model GameBoy at my Granddad's house. I could never beat his high-scores, he honestly was really good! After he passed, I wanted to honor all of the love he brought into my life by making something I know he would've really appreciated. _This one's for you, Roy <3_
 
 ## Acknowledgements
 This project was built entirely independently, with considerable time invested in understanding the Java Swing library and implementing efficient game logic. Special thanks to everyone who has supported the development of Javarominoes, including my lovely girlfriend, and all the family and friends who inspired the creation of this game.
