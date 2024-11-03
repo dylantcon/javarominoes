@@ -30,21 +30,21 @@ Javarominoes is designed with modularity and maintainability in mind. Here is a 
 
 **`Javarominoes`** **(Main Class)**: Serves as the entry point of the game. It initializes all components (`GamePanel`, `BoardPanel`, `InfoPanel`) and sets up the game's main window. Javarominoes ensures that all aspects of the game are properly initialized and interconnected, ready for gameplay.
 
-### How To Play
+## How To Play
 Movement: Use '`A`' to move pieces left, '`D`' to move pieces right, and '`S`' to move pieces down. Rotate pieces counterclockwise using '`Q`' and clockwise using '`E`'. Press '`Space`' to instantly drop the piece to the lowest possible position, which is depicted using the silhouette.
 
 Goal: The goal is to clear as many lines as possible by strategically placing pieces, earning points and increasing the game's difficulty.
 
 Scoring: Points are awarded based on piece movement, full drops, and line clears. The more lines you clear at once, the higher the score multiplier.
 
-### Motivation
+## Motivation
 I built this project as a tribute to the original Tetris game, which I grew up playing a lot on an original release-model GameBoy at my Granddad's house. I could never beat his high-scores, he honestly was really good! After he passed, I wanted to honor all of the love he brought into my life by making something I know he would've really appreciated. This one's for you, Roy.
 
-### Acknowledgements
+## Acknowledgements
 This project was built entirely independently, with considerable time invested in understanding the Java Swing library and implementing efficient game logic. Special thanks to everyone who has supported the development of Javarominoes, including my lovely girlfriend, and all the family and friends who inspired the creation of this game.
 
-### License
+## License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-### Connect
+## Connect
 Feel free to reach out or follow my journey on LinkedIn, where I often share my weekly projects or any other insights pertaining to my journey towards becoming a skilled developer. Your suggestions and feedback are always welcome!!
