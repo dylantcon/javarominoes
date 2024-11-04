@@ -24,7 +24,7 @@ Javarominoes is designed with modularity and maintainability in mind. Here is a 
 
 **`BoardPanel`**: Responsible for rendering the board visually. It updates based on the current state managed by `GamePanel`, ensuring that each move or line clear is instantly represented on-screen.
 
-**`InfoPanel`**: Displays key information like the player's current score. It plays a crucial role in score management, interacting with GamePanel to ensure that the score updates in response to in-game events like line clears and successful piece drops.
+**`InfoPanel`**: Displays key information like the player's current score. It plays a crucial role in score management, interacting with `GamePanel` to ensure that the score updates in response to in-game events like line clears and successful piece drops.
 
 **`GamePanel`**: The central hub that manages game state, user input, and interactions between other components. It handles piece generation (`generateNewPiece()`), movements (`movePiece()`, `movePieceDown()`, `rotateCW()`), and collisions (`checkCollision()`). It also manages the game's timing and difficulty progression (`shortenTTDInterval()`). _`GamePanel` is in charge of delegating tasks to `BoardPanel` and `InfoPanel` for proper rendering and score updating_.
 
