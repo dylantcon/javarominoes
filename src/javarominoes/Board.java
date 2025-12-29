@@ -14,9 +14,10 @@ public class Board
     public static final int BOARD_WIDTH = 10;           // board width in blocks
     public static final int BOARD_HEIGHT = 20;          // board height in blocks
     public static final int PIECE_BLOCKS = 5;           // number of horizontal and vertical blocks of piece matrix
+    public static final int ROTATOR_IDX = 2;
     
     // enum for state of board squares, mBoard to hold them, 
-    private static final int POS_FREE = 0;
+    public static final int POS_FREE = 0;
     private final int mBoard[][] = new int[BOARD_WIDTH][BOARD_HEIGHT];   // indices are not constant, but starting index (address) is
     // -----------------------------------------------
     

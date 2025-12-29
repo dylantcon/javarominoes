@@ -19,7 +19,7 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
 {
   private final JPanel basePanel;
   
-  private final JPanel pauseMenuPanel;
+  private final PauseMenuPanel pauseMenuPanel;
   private BoardPanel boardPanel;
   private InfoPanel infoPanel;
   
@@ -53,28 +53,11 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     
     board = new Board(); // cfg model
     
-    // cfg pause menu (simple static component)
-    // override paintComponent to manually draw semi-transparent background
-    pauseMenuPanel = new JPanel()
-    {
-      @Override
-      protected void paintComponent(Graphics g)
-      {
-        g.setColor(new Color(0, 0, 0, 150));
-        g.fillRect(0, 0, getWidth(), getHeight());
-        super.paintComponent(g);
-      }
-    };
-    pauseMenuPanel.setOpaque(false);
-    pauseMenuPanel.setLayout(new GridBagLayout());
-    pauseMenuPanel.setVisible(false);
+    // cfg: pause menu panel, board panel, information panel
+    pauseMenuPanel = new PauseMenuPanel(GamePanel.this);
+    pauseMenuPanel.getResumeButton().addActionListener(GamePanel.this);
+    pauseMenuPanel.getRestartButton().addActionListener(GamePanel.this);
     
-    // add a label to it
-    JLabel pauseLabel = new JLabel("PAUSED");
-    pauseLabel.setForeground(Color.WHITE);
-    pauseLabel.setFont(new Font("Monospace", Font.BOLD, 38));
-    pauseMenuPanel.add(pauseLabel);
-            
     boardPanel = new BoardPanel(board);
     infoPanel = new InfoPanel(GamePanel.this);
     
@@ -94,6 +77,11 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     long initialTimeMillis = System.currentTimeMillis();
     initializeTimer(initialTimeMillis);
     startTimer(initialTimeMillis);
+  }
+  
+  public PauseMenuPanel getPauseMenuPanel()
+  {
+    return pauseMenuPanel != null ? pauseMenuPanel : null;
   }
   
   private void initializeTimer(long initializationTimeMillis)
@@ -183,9 +171,17 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
       // ignore paused intervals, decrease delay only by active time elapsed
       int remainingTTD = TTD - (int)(stoppedMillis - ttdIntervalJunctureMillis);
       int newDelay = remainingTTD > 0 ? remainingTTD : 0;
-
-      timer.setDelay(newDelay);
-      timer.start();
+      
+      if (newDelay > 0)
+      {
+        timer.setDelay(newDelay);
+        timer.start();
+      }
+      else
+      {
+        ActionEvent e = new ActionEvent(timer, ActionEvent.ACTION_PERFORMED, "p");
+        actionPerformed(e);
+      }
     }
   }
   
@@ -195,27 +191,34 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     repaint();
   }
   
-  private void stopTimer(long timeStopped)
+  private void stopTimer(long stoppedMillis)
   {
     if (timer == null)
       return;
     
     // second expression is only reachable and true during initialization
-    if (timer.isRunning() || ttdIntervalJunctureMillis == timeStopped)
+    if (timer.isRunning() || ttdIntervalJunctureMillis == stoppedMillis)
     {
-      lastTimerStopMillis = timeStopped;
+      lastTimerStopMillis = stoppedMillis;
       timer.stop();
     }
   }
   
-  private void flipTimer(long timeFlipped)
+  private void flipTimer(long flippedMillis)
   { 
     if (timer == null)
       return;
     if (timer.isRunning()) // if timer was running on call, flip timer to off
-      stopTimer(timeFlipped);
+      stopTimer(flippedMillis);
     else // if timer was not running on call, flip timer to on
-      startTimer(timeFlipped);
+      startTimer(flippedMillis);
+  }
+  
+  private void togglePausePanel(long toggledMillis)
+  {
+    flipTimer(toggledMillis);
+    pauseMenuPanel.setVisible(!timer.isRunning());
+    repaint();
   }
   
   private void reinitializeGame()
@@ -225,11 +228,16 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     if (this.timer != null)
       stopTimer(initialTimeMillis);
     
+    // clean up main layer by resetting model and re-initing components
     basePanel.removeAll();
-    
     board = new Board();
     boardPanel = new BoardPanel(board);
     infoPanel = new InfoPanel(GamePanel.this);
+    
+    // clean up pause menu layer by setting invis, revert pause state if needed
+    pauseMenuPanel.setVisible(false);
+    if (!pauseMenuPanel.isShowingPause())
+      pauseMenuPanel.setPaused();
     
     basePanel.add(boardPanel);
     basePanel.add(infoPanel);
@@ -273,21 +281,6 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     posY = Pieces.getYInitialPos(curPiece, curRotation);
   }
   
-  public Color fetchBlockColor(int r)
-  {
-    return switch (r + 1)
-    {
-      case 1 -> new Color(255, 223, 0);
-      case 2 -> Color.RED;
-      case 3 -> new Color(255, 92, 0);
-      case 4 -> Color.CYAN;
-      case 5 -> Color.GREEN;
-      case 6 -> Color.MAGENTA;
-      case 7 -> Color.PINK;
-      default -> Color.WHITE;
-    };
-  }
-  
   private boolean checkCollision()
   {
     return !board.isPossibleMovement(posX, posY, currentPiece, currentRotation);
@@ -309,8 +302,8 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
       }
       else
       {
-        reinitializeGame();
-        return;
+        pauseMenuPanel.setGameOver();
+        togglePausePanel(System.currentTimeMillis());
       }
     }
     boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
@@ -323,7 +316,7 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     {
       posY++;
       infoPanel.increaseScore(2);
-    } while (this.checkCollision() == false);
+    } while (checkCollision() == false);
     
     // now store, exactly 1 position higher than collision triggering row
     board.storePiece(posX, posY - 1, currentPiece, currentRotation);
@@ -331,17 +324,20 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     if (board.isGameOver() == false)
     {
       infoPanel.increaseScore(infoPanel.getLineClearScore(board.deletePossibleLines()));
-      this.generateNewPiece();
+      generateNewPiece();
       boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
     }
     else
-      this.reinitializeGame();
+    {
+      pauseMenuPanel.setGameOver();
+      togglePausePanel(System.currentTimeMillis());
+    }
   }
   
   public void movePiece(int dx)
   {
     posX += dx;
-    if (this.checkCollision() == true)
+    if (checkCollision() == true)
       posX -= dx;
     boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
   }
@@ -349,7 +345,7 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
   public void rotateCW()
   {
     currentRotation = (currentRotation + 1) % 4;
-    if (this.checkCollision() == true)
+    if (checkCollision() == true)
       currentRotation = (currentRotation - 1 + 4) % 4;
     boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
   }
@@ -357,7 +353,7 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
   public void rotateCCW()
   {
     currentRotation = (currentRotation - 1 + 4) % 4;
-    if (this.checkCollision() == true)
+    if (checkCollision() == true)
       currentRotation = (currentRotation + 1) % 4;
     boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
   }
@@ -365,16 +361,15 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
   @Override
   public void keyPressed(KeyEvent e)
   { 
-    if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+    // only allow pause-unpause toggle via esc if game is not over
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE && !board.isGameOver())
     {
-      flipTimer(System.currentTimeMillis());
-      pauseMenuPanel.setVisible(!timer.isRunning());
-      repaint();
+      togglePausePanel(System.currentTimeMillis());
       return;
     }
     
     // key events in switch may result in a higher score; update ttd interval
-    if (this.timer.isRunning()) // only respond to these keys if unpaused
+    if (timer.isRunning()) // only respond to these keys if unpaused
     {
       switch (e.getKeyCode())
       {
@@ -406,13 +401,26 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
   @Override
   public void actionPerformed(ActionEvent e)
   {
-    // in scope here means event fired. update last timer event timestamp
-    ttdIntervalJunctureMillis = System.currentTimeMillis();
-    timePaused = 0; // it is impossible for paused time to elapse here. set to 0
-    
-    // timer fired, move current airborne block down one row and tick
-    movePieceDown();
-    tick();
+    if (e.getSource() == timer)
+    {
+      // in scope here means event fired. update last timer event timestamp
+      ttdIntervalJunctureMillis = System.currentTimeMillis();
+      timePaused = 0; // impossible for paused time to have elapsed at juncture
+
+      // timer fired, move current airborne block down one row and tick
+      movePieceDown();
+      tick();
+      return;
+    }
+    if (e.getSource() == pauseMenuPanel.getRestartButton())
+    {
+      reinitializeGame();
+      return;
+    }
+    if (e.getSource() == pauseMenuPanel.getResumeButton())
+    {
+      togglePausePanel(System.currentTimeMillis());
+    }
   }
   
   @Override

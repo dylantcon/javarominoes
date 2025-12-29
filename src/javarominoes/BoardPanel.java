@@ -20,7 +20,7 @@ public class BoardPanel extends JPanel
     private int currentPiece;
     private int currentRotation;
     private int posX, posY;
-    private Color pieceColor;
+    private final static Color SILHOUETTE_COLOR = new Color(255, 255, 255, 50);
     
     protected GridPanel()
     {
@@ -32,7 +32,6 @@ public class BoardPanel extends JPanel
     {
       this.currentPiece = p;
       this.currentRotation = r;
-      this.setPieceColor();
       this.posX = x;
       this.posY = y;
     }
@@ -40,26 +39,6 @@ public class BoardPanel extends JPanel
     private int getBlockSize()
     {
       return Math.max( BoardPanel.this.getHeight() / Board.BOARD_HEIGHT, 1 );
-    }
-    
-    private void setPieceColor()
-    {
-      pieceColor = getBlockColor( currentPiece + 1 );
-    }
-    
-    protected Color getBlockColor( int num )
-    {
-      return switch (num)
-      {
-        case 1 -> new Color( 255, 223, 0 );  // gold
-        case 2 -> Color.RED;
-        case 3 -> new Color( 255, 92, 0 );   // bright orange
-        case 4 -> Color.CYAN;
-        case 5 -> Color.GREEN;
-        case 6 -> Color.MAGENTA;
-        case 7 -> Color.PINK;
-        default -> Color.WHITE;
-      };
     }
     
     @Override
@@ -101,68 +80,28 @@ public class BoardPanel extends JPanel
       drawCurrentPiece( g, blockSize );
     }
     
-    private void drawStoredBlocks( Graphics g, int blockSize )
+    private void drawStoredBlocks(Graphics g, int blockSize)
     {
-      // loop through the board grid and draw the filled blocks
-      for ( int x = 0; x < Board.BOARD_WIDTH; x++ )
-      {
-        for ( int y = 0; y < Board.BOARD_HEIGHT; y++ )
-        {
-          if ( !board.isFreeBlock( x, y ) )
-          {
-            g.setColor( getBlockColor( board.getBlockType( x, y ) ) );
-            g.fill3DRect( x * blockSize, y * blockSize, blockSize, blockSize, true );
-          }
-        }
-      }
+      TetrominoGraphics.Render.drawStaticBoardBlocks(g, board, blockSize);
     }
 
-    private void drawCurrentPiece( Graphics g, int blockSize )
+    private void drawCurrentPiece(Graphics g, int blockSize)
     {
-      // loop through the 5x5 piece matrix to draw the current piece, guided by posX and posY
-      for ( int x = 0; x < 5; x++ )
-      {
-        for ( int y = 0; y < 5; y++ )
-        {
-          if ( Pieces.getBlockType( currentPiece, currentRotation, x, y ) != 0 )
-          {
-            g.setColor( pieceColor );
-            // shade the rotator block darker when we reach it
-            if ( x == 2 && y == 2 )
-              g.setColor( pieceColor.darker() );
-            
-            int drawX = ( x + posX ) * blockSize;
-            int drawY = ( y + posY ) * blockSize;
-            g.fill3DRect( drawX, drawY, blockSize, blockSize, true );       
-          }
-        }
-      }
+      TetrominoGraphics.Render.drawPiece(g, blockSize, 
+              currentPiece, currentRotation, posX, posY, true, null);
     }
     
-    private void drawPieceSilhouette( Graphics g, int blockSize )
+    private void drawPieceSilhouette(Graphics g, int blockSize)
     {
-      g.setColor( new Color( 255, 255, 255, 50 ) );
-      
       int tempX = posX;
       int tempY = posY;
       
-      while ( board.isPossibleMovement( tempX, tempY, currentPiece, currentRotation ) )
+      while (board.isPossibleMovement(tempX, tempY, currentPiece, currentRotation))
         tempY++;
       tempY--;
       
-      // loop through the 5x5 piece matrix to draw the current piece, guided by tempX and tempY
-      for ( int x = 0; x < 5; x++ )
-      {
-        for ( int y = 0; y < 5; y++ )
-        {
-          if ( Pieces.getBlockType( currentPiece, currentRotation, x, y ) != 0 )
-          {
-            int drawX = ( x + tempX ) * blockSize;
-            int drawY = ( y + tempY ) * blockSize;
-            g.fill3DRect( drawX, drawY, blockSize, blockSize, true );
-          }
-        }
-      }
+      TetrominoGraphics.Render.drawPiece(g, blockSize, 
+              currentPiece, currentRotation, tempX, tempY, false, SILHOUETTE_COLOR);
     }
     
   } // end inner class 1 GridPanel

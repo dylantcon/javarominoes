@@ -71,39 +71,30 @@ public class InfoPanel extends JPanel
     this.drawScoreAndSpeed( g );
   }
   
-  public void drawIncomingPiece( Graphics g )
+  public void drawIncomingPiece(Graphics g)
   {
     int lowerLim = this.getHeight() / 2;
-    int displayBoxLength = ( lowerLim * 3 ) / 4;
-    int vertPad = displayBoxLength / 8;
-    int horizPad = ( this.getWidth() - displayBoxLength ) / 2;
+    int displayBoxLength = (lowerLim * 3) / 4;
+    int vertPad = (displayBoxLength / 8) + 2;
+    int horizPad = ((this.getWidth() - displayBoxLength) / 2) + 2;
     
+    // draw box where piece will be drawn
     g.setColor( Color.WHITE );
     g.drawRect( horizPad, vertPad, displayBoxLength, displayBoxLength );
     g.setColor( Color.BLACK );
     g.fillRect( horizPad + 1, vertPad + 1, displayBoxLength - 1, displayBoxLength - 1 );
     
     int cellL = displayBoxLength / 5;
-    g.setColor( game.fetchBlockColor( incPiece ) );
     
-    for ( int x = 0; x < 5; x++ )
-    {
-      for ( int y = 0; y < 5; y++ )
-      {
-        if ( Pieces.getBlockType( incPiece, incRotation, x, y ) != 0 )
-        {
-          int cellX = ( x * cellL ) + ( horizPad + 2 );
-          int cellY = ( y * cellL ) + ( vertPad + 2 );
-          g.fill3DRect( cellX, cellY, cellL, cellL, true );
-        }
-      }
-    }
+    TetrominoGraphics.padNextRender().xBy(horizPad).yBy(vertPad);
+    TetrominoGraphics.Render.drawPiece(g, cellL,
+            incPiece, incRotation, 0, 0, false, null);
   }
   
   public void drawScoreAndSpeed( Graphics g )
   {
     g.setColor( Color.WHITE );
-    g.setFont( new Font( "Arial", Font.BOLD, 16 ) );
+    g.setFont( new Font( "Monospaced", Font.BOLD, 16 ) );
     
     // draw the current score
     String scoreText = "Score: " + currentScore;
