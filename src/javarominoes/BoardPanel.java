@@ -162,7 +162,6 @@ public class BoardPanel extends JPanel
   public void paintComponent( Graphics g )
   {
     super.paintComponent( g );
-    repaint();
   }
   
   // this is used by the GamePanel manager class when a new Piece is created or a rotation is performed
