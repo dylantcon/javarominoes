@@ -22,13 +22,16 @@ public final class MainMenuPanel extends MenuPanel {
   private final JButton playButton;
   private final JButton exitToDesktopButton;
 
-  private static final String TITLE_TEXT = "Javarominoes";
-  private static final String SUBTITLE_TEXT = "Developed by Dylan Connolly";
+  private static final String TITLE_TEXT = " Javarominoes ";
+  
+  private static final String SUBTITLE_TEXT = 
+          "<html><p>&nbsp;Developed by <b>Dylan Connolly</b>&nbsp;</p></html>";
+  
   private static final String PLAY_TEXT = "Play Game";
   private static final String EXIT_DESKTOP_TEXT = "Exit to Desktop";
 
-  private static final float TITLE_PT = 58f;
-  private static final float SUBTITLE_PT = 24f;
+  private static final float TITLE_PT = 60f;
+  private static final float SUBTITLE_PT = 18f;
   
   private static final Color TRANSPARENT = new Color(0, 0, 0, 0);
 
@@ -39,11 +42,15 @@ public final class MainMenuPanel extends MenuPanel {
     
     titleLabel = new JLabel(TITLE_TEXT);
     titleLabel.setForeground(Color.WHITE);
-    titleLabel.setFont(FONTBASE.deriveFont(Font.BOLD | Font.ITALIC, TITLE_PT));
+    titleLabel.setBackground(Color.BLACK.brighter());
+    titleLabel.setFont(FONTBASE.deriveFont(Font.BOLD, TITLE_PT));
+    titleLabel.setOpaque(true);
 
     subtitleLabel = new JLabel(SUBTITLE_TEXT);
-    subtitleLabel.setForeground(Color.DARK_GRAY);
+    subtitleLabel.setForeground(Color.DARK_GRAY.brighter());
+    subtitleLabel.setBackground(Color.LIGHT_GRAY.brighter());
     subtitleLabel.setFont(FONTBASE.deriveFont(Font.ITALIC, SUBTITLE_PT));
+    subtitleLabel.setOpaque(true);
 
     playButton = super.buildButton(PLAY_TEXT, Color.GREEN, Color.BLUE);
     exitToDesktopButton = super.buildButton(EXIT_DESKTOP_TEXT, Color.WHITE, Color.RED);
@@ -63,11 +70,13 @@ public final class MainMenuPanel extends MenuPanel {
   protected void initGbl() {
     Insets headerP = new Insets(20, 0, 20, 0);
     Insets stdP = new Insets(10, 20, 10, 20);
-
+    
     super.gblAdd(titleLabel, 0, 0, 1.0, 0.0, GridBagConstraints.CENTER, headerP);
     super.gblAdd(subtitleLabel, 0, 1, 1.0, 0.0, GridBagConstraints.CENTER, headerP);
-    super.gblAdd(playButton, 0, 2, 1.0, 1.0, GridBagConstraints.CENTER, stdP);
-    super.gblAdd(exitToDesktopButton, 0, 3, 1.0, 1.0, GridBagConstraints.CENTER, stdP);
+    super.gblAdd(new JLabel(), 0, 2, 0.5, 0.0, GridBagConstraints.CENTER, stdP);
+    super.gblAdd(playButton, 0, 3, 0.0, 0.0, GridBagConstraints.CENTER, stdP);
+    super.gblAdd(exitToDesktopButton, 0, 4, 0.0, 0.0, GridBagConstraints.CENTER, stdP);
+    super.gblAdd(new JLabel(), 0, 5, 0.5, 0.0, GridBagConstraints.CENTER, stdP);
   }
 
   @Override

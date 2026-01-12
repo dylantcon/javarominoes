@@ -18,18 +18,36 @@ public class Board {
 
   // enum for state of board squares, mBoard to hold them, 
   public static final int POS_FREE = 0;
-  private final int mBoard[][] = new int[BOARD_WIDTH][BOARD_HEIGHT];   // indices are not constant, but starting index (address) is
   // -----------------------------------------------
 
-  // sets screen height and inits board
+  private final int height;
+  private final int width;
+  
+  private int mBoard[][];
+  
+  // -----------------------------------------------
+
+  // sets screen height and inits board (used by actual game with std dimensions)
   public Board() {
+    height = BOARD_HEIGHT;
+    width = BOARD_WIDTH;
+    
+    initBoard();
+  }
+  
+  // used by parallaxscrollpanel for towers in backing layers
+  public Board(int h, int w) {
+    height = h;
+    width = w;
+    
     initBoard();
   }
 
-  // sets all squares in board to free
+  // sets all squares in board to free. must have dimensions configured
   private void initBoard() {
-    for (int i = 0; i < BOARD_WIDTH; i++) {
-      for (int j = 0; j < BOARD_HEIGHT; j++) {
+    mBoard = new int[width][height];
+    for (int i = 0; i < width; i++) {
+      for (int j = 0; j < height; j++) {
         mBoard[i][j] = POS_FREE;
       }
     }
@@ -48,7 +66,7 @@ public class Board {
           int boardX = pX + i;
           int boardY = pY + j;
 
-          if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+          if (boardY >= 0 && boardY < height && boardX >= 0 && boardX < width) {
             mBoard[i + pX][j + pY] = Pieces.getBlockType(pPiece, pRotation, i, j);
           }
         }
@@ -71,7 +89,7 @@ public class Board {
   public void deleteLine(int pY) {
     // moves all the upper lines one row down
     for (int j = pY; j > 0; j--) {
-      for (int i = 0; i < BOARD_WIDTH; i++) {
+      for (int i = 0; i < width; i++) {
         mBoard[i][j] = mBoard[i][j - 1];
       }
     }
@@ -80,9 +98,9 @@ public class Board {
   // delete all lines that should be removed
   public int deletePossibleLines() {
     int numCleared = 0;
-    for (int j = 0; j < BOARD_HEIGHT; j++) {
+    for (int j = 0; j < height; j++) {
       int i = 0;
-      while (i < BOARD_WIDTH) {
+      while (i < width) {
         // if current square on current line has a non-filled element, break early
         if (mBoard[i][j] == POS_FREE) {
           break;
@@ -90,7 +108,7 @@ public class Board {
         i++;        // otherwise, increment i to continue checking
       }
       // if i has iterated to boardWidth, all squares on line are filled. delete it
-      if (i == BOARD_WIDTH) {
+      if (i == width) {
         deleteLine(j);
         numCleared++;
       }
@@ -102,32 +120,61 @@ public class Board {
     return mBoard[i2][j2];
   }
 
+  // used for backtracking during tower generation
+  public void clearBlock(int i2, int j2) {
+    mBoard[i2][j2] = POS_FREE;
+  }
+
+  public int getWidth() {
+    return width;
+  }
+
+  public int getHeight() {
+    return height;
+  }
+
   // returns state of board square at coordinates pX, pY
   public boolean isFreeBlock(int i2, int j2) {
     return (mBoard[i2][j2] == POS_FREE);
   }
 
   // check if piece can be stored at given position without any collision
-  // (overlays 5x5 piece matrix in gamegrid, enforcing non-zero squares to remain in 10x20 area)
+  // note: allows pieces to extend above board (negative Y) for spawning
   public boolean isPossibleMovement(int pX, int pY, int pPiece, int pRotation) {
-    // checks collision with pieces already stored in the board OR the board limits )
     for (int j = 0; j < PIECE_BLOCKS; j++) {
       for (int i = 0; i < PIECE_BLOCKS; i++) {
         if (Pieces.getBlockType(pPiece, pRotation, i, j) != 0) {
           int boardX = pX + i;
           int boardY = pY + j;
-          // check if the piece is outside the limits of the board
-          if (boardX < 0 || boardX >= BOARD_WIDTH || boardY >= BOARD_HEIGHT) {
+          if (boardX < 0 || boardX >= width || boardY >= height) {
             return false;
           }
-          // check if piece has collided with a block already in the board
           if (boardY >= 0 && !isFreeBlock(boardX, boardY)) {
             return false;
           }
         }
       }
     }
-    // if all checks have been passed with no false return, then movement is possible
+    return true;
+  }
+
+  // check if piece is fully within bounds with no collision
+  // unlike isPossibleMovement, rejects pieces extending above board
+  public boolean containsTetromino(int pX, int pY, int pPiece, int pRotation) {
+    for (int j = 0; j < PIECE_BLOCKS; j++) {
+      for (int i = 0; i < PIECE_BLOCKS; i++) {
+        if (Pieces.getBlockType(pPiece, pRotation, i, j) != 0) {
+          int boardX = pX + i;
+          int boardY = pY + j;
+          if (boardX < 0 || boardX >= width || boardY < 0 || boardY >= height) {
+            return false;
+          }
+          if (!isFreeBlock(boardX, boardY)) {
+            return false;
+          }
+        }
+      }
+    }
     return true;
   }
 

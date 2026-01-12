@@ -13,26 +13,26 @@ import java.awt.Graphics;
  */
 public class TetrominoGraphics {
 
-  private static int PAD_X = 0;
-  private static int PAD_Y = 0;
+  private static int OFFSET_X = 0;
+  private static int OFFSET_Y = 0;
 
-  public static RenderPaddingBuilder padNextRender() {
-    return new RenderPaddingBuilder();
+  public static RenderOffsetBuilder offsetNextRender() {
+    return new RenderOffsetBuilder();
   }
 
-  private static void clearRenderPadding() {
-    PAD_X = PAD_Y = 0;
+  private static void clearRenderOffsets() {
+    OFFSET_X = OFFSET_Y = 0;
   }
 
-  public static class RenderPaddingBuilder {
+  public static class RenderOffsetBuilder {
 
-    public RenderPaddingBuilder xBy(int px) {
-      TetrominoGraphics.PAD_X = px;
+    public RenderOffsetBuilder xBy(int px) {
+      TetrominoGraphics.OFFSET_X = px;
       return this;
     }
 
-    public RenderPaddingBuilder yBy(int px) {
-      TetrominoGraphics.PAD_Y = px;
+    public RenderOffsetBuilder yBy(int px) {
+      TetrominoGraphics.OFFSET_Y = px;
       return this;
     }
   }
@@ -73,6 +73,39 @@ public class TetrominoGraphics {
       }
     }
 
+    // draws a variable-size board (tower) at given offset with depth shading
+    public static void drawTower(Graphics g, Board b, int bPx, float depthFactor) {
+      int width = b.getWidth();
+      int height = b.getHeight();
+
+      for (int col = 0; col < width; col++) {
+        for (int row = 0; row < height; row++) {
+          if (!b.isFreeBlock(col, row)) {
+            int blockType = b.getBlockType(col, row);
+            Color baseColor = getBlockColor(blockType);
+            Color depthColor = darkenForDepth(baseColor, depthFactor);
+
+            g.setColor(depthColor);
+            int x = TetrominoGraphics.OFFSET_X + (col * bPx);
+            int y = TetrominoGraphics.OFFSET_Y + (row * bPx);
+            g.fill3DRect(x, y, bPx, bPx, true);
+          }
+        }
+      }
+      // padding set only affects next render, reset it
+      TetrominoGraphics.clearRenderOffsets();
+    }
+
+    private static Color darkenForDepth(Color color, float depthFactor) {
+      // depthFactor 0 = front (no darkening), 1 = far back (max darkening)
+      float brightness = 1.0f - (depthFactor * 0.6f);
+      return new Color(
+          (int)(color.getRed() * brightness),
+          (int)(color.getGreen() * brightness),
+          (int)(color.getBlue() * brightness)
+      );
+    }
+
     /*
     * gX , gY are block coordinates of the top left of the piece matrix, and it
     * is assumed that the origin of the coordinate system corresponds to 0px,0px
@@ -82,10 +115,7 @@ public class TetrominoGraphics {
     * simply pass gX and gY as zero. pc is the index of the specific piece matrix
      */
     public static void drawPiece(Graphics g, int bPx, int pc, int rot,
-            /**
-             * ***
-             */
-            int gX, int gY, boolean showRotator, Color override) {
+    /*******/ int gX, int gY, boolean showRotator, Color override) {
       // must have graphics. assume parameters passed correctly
       if (g == null) {
         return;
@@ -102,8 +132,8 @@ public class TetrominoGraphics {
           // if the block is not a free position...
           if (Pieces.getBlockType(pc, rot, column, row) != Board.POS_FREE) {
             isRotator = column == Board.ROTATOR_IDX && row == Board.ROTATOR_IDX;
-            xPx = ((column + gX) * bPx) + TetrominoGraphics.PAD_X;
-            yPx = ((row + gY) * bPx) + TetrominoGraphics.PAD_Y;
+            xPx = ((column + gX) * bPx) + TetrominoGraphics.OFFSET_X;
+            yPx = ((row + gY) * bPx) + TetrominoGraphics.OFFSET_Y;
             if (isRotator && showRotator) {
               g.setColor(baseColor.darker());
               g.fill3DRect(xPx, yPx, bPx, bPx, true);
@@ -115,7 +145,7 @@ public class TetrominoGraphics {
         }
       }
       // padding set only affects the next render. reset it to 0.
-      TetrominoGraphics.clearRenderPadding();
+      TetrominoGraphics.clearRenderOffsets();
     }
   }
 }

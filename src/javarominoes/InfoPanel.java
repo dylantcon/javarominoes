@@ -5,26 +5,36 @@
 package javarominoes;
 
 import java.awt.*;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import javax.swing.*;
 
 /**
  *
  * @author dylan
  */
-public class InfoPanel extends JPanel {
+public class InfoPanel extends JPanel implements ComponentListener {
 
   private int incPiece;
   private int incRotation;
   private int currentScore;
   private final GamePanel game;
+  
+  private final static Font FONT_BASE = new Font("Monospaced", Font.BOLD, 18);
+  
+  private Font currentFont;
 
   public InfoPanel(GamePanel g) {
     this.setBackground(Color.GRAY);
     game = g;
     currentScore = 0;
 
+    currentFont = FONT_BASE;
+    
     incPiece = game.nextPiece;
     incPiece = game.nextRotation;
+    
+    addComponentListener(InfoPanel.this);
   }
 
   public void updateIncomingPieceInfo(int p, int r) {
@@ -53,7 +63,7 @@ public class InfoPanel extends JPanel {
     repaint();
   }
 
-  // initially takes average of linear and logarithmic curve
+  // initially takes average of linear and logarithmic curve.
   public int deltaTTD() {
     double linear = ((-currentScore / 37) + 700);
     double logCurve = (700 - (180 * Math.log10((currentScore / 120) + 1)));
@@ -66,32 +76,35 @@ public class InfoPanel extends JPanel {
   @Override
   public void paintComponent(Graphics g) {
     super.paintComponent(g);
-    this.drawIncomingPiece(g);
+    this.drawPiecePreviewRegion(g);
     this.drawScoreAndSpeed(g);
   }
-
-  public void drawIncomingPiece(Graphics g) {
+  
+  // sorry for magic numbers this was rushed
+  private void drawPiecePreviewRegion(Graphics g) {
+    
+    // adjust box dimensions here
     int lowerLim = this.getHeight() / 2;
-    int displayBoxLength = (lowerLim * 3) / 4;
-    int vertPad = (displayBoxLength / 8) + 2;
-    int horizPad = ((this.getWidth() - displayBoxLength) / 2) + 2;
+    int displayBoxLength = (lowerLim * 6) / 7;
+    int vertPad = (displayBoxLength / 8);
+    int horizPad = ((this.getWidth() - displayBoxLength) / 2);
 
-    // draw box where piece will be drawn
+    // draw box where piece will be drawn (1) white box (2) black inner box
     g.setColor(Color.WHITE);
     g.drawRect(horizPad, vertPad, displayBoxLength, displayBoxLength);
+    
     g.setColor(Color.BLACK);
     g.fillRect(horizPad + 1, vertPad + 1, displayBoxLength - 1, displayBoxLength - 1);
 
-    int cellL = displayBoxLength / 5;
-
-    TetrominoGraphics.padNextRender().xBy(horizPad).yBy(vertPad);
+    int cellL = (displayBoxLength - 1) / 5; // adjust for smaller inner box
+    TetrominoGraphics.offsetNextRender().xBy(horizPad + 1).yBy(vertPad + 1);
     TetrominoGraphics.Render.drawPiece(g, cellL,
             incPiece, incRotation, 0, 0, false, null);
   }
-
-  public void drawScoreAndSpeed(Graphics g) {
+  
+  private void drawScoreAndSpeed(Graphics g) {
     g.setColor(Color.WHITE);
-    g.setFont(new Font("Monospaced", Font.BOLD, 16));
+    g.setFont(currentFont);
 
     // draw the current score
     String scoreText = "Score: " + currentScore;
@@ -102,4 +115,24 @@ public class InfoPanel extends JPanel {
     String speedText = "Drop Speed: " + currentSpeed + " ms";
     g.drawString(speedText, 10, this.getHeight() - 30);
   }
+  
+  private Font getProportionalFont() {
+    return FONT_BASE.deriveFont(getWidth() / 35f);
+  }
+
+  @Override
+  public void componentResized(ComponentEvent e) {
+    currentFont = getProportionalFont();
+  }
+
+  @Override
+  public void componentMoved(ComponentEvent e) {}
+  
+  @Override
+  public void componentShown(ComponentEvent e) {
+    currentFont = getProportionalFont();
+  }
+  
+  @Override
+  public void componentHidden(ComponentEvent e) {}
 }

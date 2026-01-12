@@ -35,13 +35,14 @@ public abstract class MenuPanel extends JPanel {
   protected JButton buildButton(String label, Color fg, Color bg) {
     Dimension buttonSize = new Dimension(BUTTON_WIDTH_PX, BUTTON_HEIGHT_PX);
 
-    JButton pauseMenuButton = new JButton(label);
-    pauseMenuButton.setPreferredSize(buttonSize);
-    pauseMenuButton.setFont(FONTBASE.deriveFont(Font.ITALIC, BUTTON_FONT_PT));
-    pauseMenuButton.setForeground(fg);
-    pauseMenuButton.setBackground(bg);
+    JButton menuButton = new JButton(label);
+    menuButton.setPreferredSize(buttonSize);
+    menuButton.setFont(FONTBASE.deriveFont(Font.ITALIC, BUTTON_FONT_PT));
+    menuButton.setForeground(fg);
+    menuButton.setBackground(bg);
+    menuButton.setFocusable(false);
 
-    return pauseMenuButton;
+    return menuButton;
   }
 
   protected abstract void initGbl();

@@ -18,6 +18,8 @@ import java.awt.event.KeyListener;
  */
 public class GamePanel extends JLayeredPane implements KeyListener, ActionListener {
 
+  private Javarominoes frame;
+  
   private final JPanel basePanel;
 
   private final PauseMenuPanel pauseMenuPanel;
@@ -46,7 +48,10 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
   private final int[] bag = new int[7];
   private int currentBagIndex;
 
-  public GamePanel() {
+  public GamePanel(Javarominoes frame) {
+    
+    this.frame = frame;
+    
     // cfg ui
     basePanel = new JPanel(); // base layer 
     basePanel.setLayout(new GridLayout(1, 2));
@@ -397,6 +402,7 @@ public class GamePanel extends JLayeredPane implements KeyListener, ActionListen
     }
     if (e.getSource() == pauseMenuPanel.getRestartButton()) {
       reinitializeGame();
+      frame.restartMusic();
       gameStartLifespan();
       return;
     }
