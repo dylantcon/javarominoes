@@ -25,7 +25,7 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   /* CONSTANTS */
   
   private final static int DEFAULT_BACKING_LAYER_NUM = 8;
-  private final static int DEFAULT_HZ = 100;
+  private final static int DEFAULT_HZ = 60;
   private final static int SEC_TO_MSECS = 1000;
   private final static int FG_BLOCK_LIST_RESIZE_BUFFER_PX = 10; // +10 px buffer
   
