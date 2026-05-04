@@ -4,15 +4,12 @@
  */
 package javarominoes;
 
+import javarominoes.view.ParallaxScrollPanel;
+import javarominoes.view.MainMenuPanel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import javax.sound.midi.InvalidMidiDataException;
-import javax.sound.midi.MidiSystem;
-import javax.sound.midi.MidiUnavailableException;
-import javax.sound.midi.Sequencer;
+import javarominoes.model.ChiptuneSynthMusicHandler;
+import javarominoes.view.PauseMenuPanel;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
 
@@ -23,11 +20,10 @@ import javax.swing.JLayeredPane;
 public class Javarominoes implements ActionListener {
   
   private static JFrame javarominoes;
-  private static GamePanel gamePanel;
+  private static GameController gameController;
   private static MainMenuPanel mainMenuPanel;
   private static ParallaxScrollPanel parallaxPanel;
   private static JLayeredPane menuContainer;
-  private Sequencer sequencer;
   
   public final static int INITIAL_X = 1280;
   public final static int INITIAL_Y = 720;
@@ -36,10 +32,14 @@ public class Javarominoes implements ActionListener {
     javarominoes = new JFrame("Javarominoes");
     javarominoes.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    gamePanel = new GamePanel(this);
+    gameController = new GameController();
+    
     // refreshrate: 75hz, layer size geometric series common ratio: 0.8
     parallaxPanel = new ParallaxScrollPanel(75, 0.8f);
     mainMenuPanel = new MainMenuPanel();
+    
+    // default to custom synthesizer
+    mainMenuPanel.setMusicHandler(new ChiptuneSynthMusicHandler());
     
     menuContainer = new JLayeredPane() {
       @Override
@@ -61,7 +61,7 @@ public class Javarominoes implements ActionListener {
     mainMenuPanel.getPlayButton().addActionListener(Javarominoes.this);
     mainMenuPanel.getExitToDesktopButton().addActionListener(Javarominoes.this);
     
-    gamePanel.getPauseMenuPanel()
+    gameController.getPauseMenuPanel()
             .getMainMenuButton()
             .addActionListener(Javarominoes.this);
 
@@ -71,58 +71,30 @@ public class Javarominoes implements ActionListener {
 
   public void startApp() {
     javarominoes.setVisible(true);
+    MainMenuPanel.musicHandler.startMusic();
     doFrameAddMenu();
-    startMusic();
-  }
-  
-  public void restartMusic() {
-    stopMusic();
-    startMusic();
-  }
-
-  private void startMusic() {
-    try {
-      sequencer = MidiSystem.getSequencer();
-      sequencer.open();
-
-      // load MIDI from classpath (put korobeiniki.mid in the javarominoes package folder)
-      InputStream midiStream = getClass().getResourceAsStream("korobeiniki.mid");
-      if (midiStream != null) {
-        sequencer.setSequence(MidiSystem.getSequence(midiStream));
-        sequencer.setLoopCount(Sequencer.LOOP_CONTINUOUSLY);
-        sequencer.start();
-      } else {
-        System.err.println("Could not find korobeiniki.mid in resources");
-      }
-    } catch (IOException | InvalidMidiDataException | MidiUnavailableException e) {
-      System.out.println(Arrays.toString(e.getStackTrace()));
-    }
-  }
-
-  private void stopMusic() {
-    if (sequencer != null && sequencer.isOpen()) {
-      sequencer.stop();
-      sequencer.close();
-    }
   }
   
   private void doFramePlayGame() {
-    if (gamePanel == null)
-      gamePanel = new GamePanel(this);
+    if (gameController == null)
+    {
+      gameController = new GameController();
+      gameController.getPauseMenuPanel()
+              .setMusicHandler(MainMenuPanel.musicHandler);
+    }
     
-    javarominoes.add(gamePanel);
+    javarominoes.add(gameController);
     
     javarominoes.revalidate();
     javarominoes.repaint();
     
-    gamePanel.gameStartLifespan();
-    gamePanel.requestFocusInWindow();
+    gameController.gameStartLifespan();
+    gameController.requestFocusInWindow();
   }
 
   private void doFrameRemoveGame() {
-    gamePanel.reinitializeGame();
-    
-    javarominoes.remove(gamePanel);
+    gameController.reinitializeGame();
+    javarominoes.remove(gameController);
     javarominoes.revalidate();
     javarominoes.repaint();
   }
@@ -141,8 +113,8 @@ public class Javarominoes implements ActionListener {
   
   @Override
   public void actionPerformed(ActionEvent e) {
-    if (gamePanel != null) {
-      if (e.getSource() == gamePanel.getPauseMenuPanel().getMainMenuButton()) {
+    if (gameController != null) {
+      if (e.getSource() == gameController.getPauseMenuPanel().getMainMenuButton()) {
         doFrameRemoveGame();
         doFrameAddMenu();
         return;
@@ -151,12 +123,11 @@ public class Javarominoes implements ActionListener {
 
     if (e.getSource() == mainMenuPanel.getPlayButton()) {
       doFrameRemoveMenu();
-      restartMusic();
       doFramePlayGame();
       return;
     }
     if (e.getSource() == mainMenuPanel.getExitToDesktopButton()) {
-      stopMusic();
+      MainMenuPanel.musicHandler.stopMusic();
       javarominoes.dispose();
     }
   }
