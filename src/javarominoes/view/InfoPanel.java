@@ -24,6 +24,12 @@ public class InfoPanel extends JPanel implements ComponentListener {
   
   private final static Font FONT_BASE = new Font("Monospaced", Font.BOLD, 18);
   
+  private final static int TRANS_Y = 700;
+  private final static int LOG_OUTER_MLTPLCND = 160;
+  private final static int LOG_INNER_DIVISOR = 140;
+  private final static double LINEAR_DIVISOR = Math.pow(10.0, Math.sqrt(Math.E));
+  private final static int LIN_LOG_INTERCEPT = 14361;
+  
   private Font currentFont;
 
   public InfoPanel(GameController g) {
@@ -67,12 +73,20 @@ public class InfoPanel extends JPanel implements ComponentListener {
 
   // initially takes average of linear and logarithmic curve.
   public int deltaTTD() {
-    double linear = ((-currentScore / 37) + 700);
-    double logCurve = (700 - (180 * Math.log10((currentScore / 120) + 1)));
-    if (currentScore < 13735) {
+    double linear = linearCurve(currentScore);
+    double logCurve = logarithmicCurve(currentScore);
+    if (currentScore < LIN_LOG_INTERCEPT) {
       return (int) ((logCurve + linear) / 2);
     }
     return (int) logCurve;
+  }
+  
+  private static double logarithmicCurve(int score) {
+    return TRANS_Y-(LOG_OUTER_MLTPLCND*Math.log10((score/LOG_INNER_DIVISOR)+1));
+  }
+  
+  private static double linearCurve(int score) {
+    return ((-score/LINEAR_DIVISOR)+TRANS_Y);
   }
 
   @Override

@@ -26,7 +26,7 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
 
   /* CONSTANTS */
   
-  private final static int DEFAULT_BACKING_LAYER_NUM = 8;
+  private final static int DEFAULT_BACKING_LAYER_NUM = 6;
   private final static int DEFAULT_HZ = 60;
   private final static int SEC_TO_MSECS = 1000;
   private final static int FG_BLOCK_LIST_RESIZE_BUFFER_PX = 10; // +10 px buffer
@@ -80,9 +80,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     initializeRedrawTimer(refreshHz);
     fgBlockSzPx = getBaseBlockSize();
     
-    System.out.println("Calculated base block size of " + fgBlockSzPx + " pixels.");
-    
-    
     initializeForegroundPositions(640);
     setVisible(true);
     redrawTimer.start();
@@ -95,7 +92,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       refreshHz = DEFAULT_HZ;
     
     int rerenderPeriod = SEC_TO_MSECS / refreshHz;
-    System.out.println("Rerender period = " + Integer.toString(rerenderPeriod));
     
     if (redrawTimer != null && redrawTimer.isRunning()) {
       redrawTimer.stop();

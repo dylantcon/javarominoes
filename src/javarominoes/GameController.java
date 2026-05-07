@@ -16,6 +16,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
@@ -28,6 +30,8 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
   private final PauseMenuPanel pauseMenuPanel;
   private BoardPanel boardPanel;
   private InfoPanel infoPanel;
+  
+  private final Set<Integer> pressedKeys = ConcurrentHashMap.newKeySet();
 
   public Board board;
 
@@ -35,12 +39,35 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
   public final static int MIN_TTD = 180;
   private boolean MIN_TTD_REACHED = false;
   private final static int INIT_TTD = 700;
+  private final static int MUSIC_SPEEDUP_THRESHOLD = INIT_TTD - 100;
+  
   public int TTD = INIT_TTD;  // 700 ms initial ttd
   private long timePaused; // time elapsed while paused during one ttd interval
   private long ttdIntervalJunctureMillis;
   private long lastTimerStopMillis;
+  
+  private final static int KEY_POLL_MS = 16; // 60HZ
+  
+  private long leftHeldSinceMs = 0;
+  private long lastLeftMoveMs = 0;
+  
+  private long rightHeldSinceMs = 0;
+  private long lastRightMoveMs = 0;
+  
+  private boolean qWasHeldLastFrame = false;
+  private boolean eWasHeldLastFrame = false;
+  
+  private long softDropHeldSinceMs = 0;
+  private long lastSoftDropMs = 0; 
+  
+  private boolean spaceWasHeldLastFrame = false;
+  
+  private static final long DAS_DELAY = 170;
+  private static final long DAS_REPEAT = 33;
+  private static final long SOFT_DROP_REPEAT = 50;
 
-  public Timer timer; // fires events for natural block descent every TTD ms
+  public Timer blockTimer; // fires events for natural block descent every TTD ms
+  public Timer keyInputTimer = new Timer(KEY_POLL_MS, e -> handleKeyInput());
 
   private int currentPiece;
   private int currentRotation;
@@ -78,10 +105,10 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
     nextRotation = GameController.getRandomNumber(4);
     generateNewPiece();
 
-    // timer is initially null prior to starting game lifespan 
-    timer = null;
+    // blockTimer is initially null prior to starting game lifespan 
+    blockTimer = null;
     
-    initKeyInput(); // key listeners ignore until timer exists
+    initKeyInput(); // key listeners ignore until blockTimer exists
   }
 
   public PauseMenuPanel getPauseMenuPanel() {
@@ -91,8 +118,9 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
   public void gameStartLifespan()
   {
     long initialTimeMillis = System.currentTimeMillis();
-    initializeTimer(initialTimeMillis);
-    startTimer(initialTimeMillis);
+    initializeBlockTimer(initialTimeMillis);
+    startBlockTimer(initialTimeMillis);
+    keyInputTimer.start();
   }
   
   // initialize the bag array and shuffle it
@@ -133,41 +161,65 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
 
   private void updateTTDInterval() {
     if (!MIN_TTD_REACHED) {
-      TTD = infoPanel.deltaTTD();
-      if (TTD > MIN_TTD) {
-        timer.setDelay(TTD);
-      } else {
+      int candidateTTD = infoPanel.deltaTTD();
+      if (TTD <= MIN_TTD) {
         MIN_TTD_REACHED = true;
-        timer.setDelay(MIN_TTD);
+        candidateTTD = MIN_TTD;
       }
+      TTD = candidateTTD;
+      blockTimer.setDelay(TTD);
+      updateMusicSpeed();
     }
   }
+  
+  private static double speedForDropTime(int ttd) {
+    /* drop time starts at INIT_TTD = 700ms, ends at MIN_TTD = 180ms
+     first 100ms is intro padding, no speedup. remaining 420ms is 
+    split into 8 tiers, mapped below: */
+    if (ttd >= MUSIC_SPEEDUP_THRESHOLD) return 1.0; //intro
+    int tier = Math.min((int)Math.floor((600 - ttd) / 52.5 + 1), 8);
+    switch (tier)
+    {
+      case 1 -> { return 1.05; }
+      case 2 -> { return 1.10; }
+      case 3 -> { return 1.20; }
+      case 4 -> { return 1.30; }
+      case 5 -> { return 1.40; }
+      case 6 -> { return 1.55; }
+      case 7 -> { return 1.70; }
+      case 8 -> { return 2.00; }
+      default -> { return 1.00; }
+    }
+  }
+  
+  private void updateMusicSpeed() {
+    PauseMenuPanel.musicHandler.setSpeed(speedForDropTime(TTD));
+  }
 
-  private void initializeTimer(long initializationTimeMillis) {
-    if (timer == null) {
-      timer = new Timer(INIT_TTD, this);
+  private void initializeBlockTimer(long initializationTimeMillis) {
+    if (blockTimer == null) {
+      blockTimer = new Timer(INIT_TTD, this);
     } else {
-      timer.setDelay(INIT_TTD);
+      blockTimer.setDelay(INIT_TTD);
     }
 
     // during initialization,
-    timePaused = 0; // therefore the timer has been paused for 0 ms
+    timePaused = 0; // therefore the blockTimer has been paused for 0 ms
     TTD = INIT_TTD; // ttd equals init_ttd (no score accrued)
 
     // initialization is a valid ttd interval juncture
     ttdIntervalJunctureMillis = initializationTimeMillis;
 
     // call ensures stoppedMillis - ttdIntervalJuncture is 0 for initial start
-    stopTimer(initializationTimeMillis);
+    stopBlockTimer(initializationTimeMillis);
   }
-
   
-  private void startTimer(long startedMillis) {
-    if (timer == null) {
+  private void startBlockTimer(long startedMillis) {
+    if (blockTimer == null) {
       return;
     }
 
-    if (!timer.isRunning()) {
+    if (!blockTimer.isRunning()) {
       timePaused += startedMillis - lastTimerStopMillis;
       long stoppedMillis = startedMillis - timePaused;
 
@@ -176,24 +228,24 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
       int newDelay = remainingTTD > 0 ? remainingTTD : 0;
 
       if (newDelay > 0) {
-        timer.setDelay(newDelay);
-        timer.start();
+        blockTimer.setDelay(newDelay);
+        blockTimer.start();
       } else {
-        ActionEvent e = new ActionEvent(timer, ActionEvent.ACTION_PERFORMED, "p");
+        ActionEvent e = new ActionEvent(blockTimer, ActionEvent.ACTION_PERFORMED, "p");
         actionPerformed(e);
       }
     }
   }
 
-  private void stopTimer(long stoppedMillis) {
-    if (timer == null) {
+  private void stopBlockTimer(long stoppedMillis) {
+    if (blockTimer == null) {
       return;
     }
 
     // second expression is only reachable and true during initialization
-    if (timer.isRunning() || ttdIntervalJunctureMillis == stoppedMillis) {
+    if (blockTimer.isRunning() || ttdIntervalJunctureMillis == stoppedMillis) {
       lastTimerStopMillis = stoppedMillis;
-      timer.stop();
+      blockTimer.stop();
     }
   }
   
@@ -202,22 +254,22 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
     repaint();
   }
 
-  private void flipTimer(long flippedMillis) {
-    if (timer == null) {
+  private void flipBlockTimer(long flippedMillis) {
+    if (blockTimer == null) {
       return;
     }
-    if (timer.isRunning()) // if timer was running on call, flip timer to off
+    if (blockTimer.isRunning()) // if blockTimer was running on call, flip blockTimer to off
     {
-      stopTimer(flippedMillis);
-    } else // if timer was not running on call, flip timer to on
+      stopBlockTimer(flippedMillis);
+    } else // if blockTimer was not running on call, flip blockTimer to on
     {
-      startTimer(flippedMillis);
+      startBlockTimer(flippedMillis);
     }
   }
 
   private void togglePause(long toggledMillis) {
-    flipTimer(toggledMillis);
-    pauseMenuPanel.setVisible(!timer.isRunning());
+    flipBlockTimer(toggledMillis);
+    pauseMenuPanel.setVisible(!blockTimer.isRunning());
     repaint();
   }
 
@@ -225,8 +277,8 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
   // game lifespan must be started via call to gameStartLifespan
   public void reinitializeGame() {
 
-    if (this.timer != null) {
-      timer.stop();
+    if (this.blockTimer != null) {
+      blockTimer.stop();
     }
 
     // clean up main layer by resetting model and re-initing components
@@ -240,6 +292,9 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
     if (!pauseMenuPanel.isShowingPause()) {
       pauseMenuPanel.setPaused();
     }
+    
+    if (PauseMenuPanel.musicHandler.doingPlayback())
+      PauseMenuPanel.musicHandler.restartMusic();
 
     basePanel.add(boardPanel);
     basePanel.add(infoPanel);
@@ -342,11 +397,82 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
     }
     boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
   }
+  
+  private void processHorizontalInput(long now) {
+    boolean leftHeld = pressedKeys.contains(KeyEvent.VK_A);
+    boolean rightHeld = pressedKeys.contains(KeyEvent.VK_D);
+    
+    if (leftHeld) {
+      if (leftHeldSinceMs == 0) {
+        // just pressed, move immediately
+        movePiece(-1);
+        leftHeldSinceMs = now;
+        lastLeftMoveMs = now;
+      } else if (now - leftHeldSinceMs >= DAS_DELAY
+              && now - lastLeftMoveMs >= DAS_REPEAT) {
+        // held long enough to auto shift, and enough time since last shift
+        movePiece(-1);
+        lastLeftMoveMs = now;
+      }
+    }
+    else leftHeldSinceMs = 0;
+    
+    if (rightHeld) {
+      if (rightHeldSinceMs == 0) {
+        // just pressed, move immediately
+        movePiece(1);
+        rightHeldSinceMs = now;
+        lastRightMoveMs = now;
+      } else if (now - rightHeldSinceMs >= DAS_DELAY
+              && now - lastRightMoveMs >= DAS_REPEAT) {
+        // held long enough to auto shift, and enough time since last shift
+        movePiece(1);
+        lastRightMoveMs = now;
+      }
+    }
+    else rightHeldSinceMs = 0;
+  }
+  
+  private void processRotationInput() {
+    boolean qHeldNow = pressedKeys.contains(KeyEvent.VK_Q);
+    if (qHeldNow && !qWasHeldLastFrame) {
+      rotateCCW();
+    }
+    qWasHeldLastFrame = qHeldNow;
+    boolean eHeldNow = pressedKeys.contains(KeyEvent.VK_E);
+    if (eHeldNow && !eWasHeldLastFrame) {
+      rotateCW();
+    }
+    eWasHeldLastFrame = eHeldNow;
+  }
+  
+  private void processDownwardInput(long now) {
+    boolean spaceHeldNow = pressedKeys.contains(KeyEvent.VK_SPACE);
+    if (spaceHeldNow && !spaceWasHeldLastFrame) {
+      fullDropPiece();
+    }
+    spaceWasHeldLastFrame = spaceHeldNow;
+    if (!spaceWasHeldLastFrame) {
+      boolean softDropHeld = pressedKeys.contains(KeyEvent.VK_S);
+      if (softDropHeld) {
+        if (softDropHeldSinceMs == 0) {
+          movePieceDown();
+          lastSoftDropMs = now;
+          softDropHeldSinceMs = now;
+        }
+        else if (now - lastSoftDropMs >= SOFT_DROP_REPEAT) {
+          movePieceDown();
+          lastSoftDropMs = now;
+        }
+      }
+      else softDropHeldSinceMs = 0;
+    }
+  }
 
   @Override
   public void keyPressed(KeyEvent e) {
     
-    if (timer == null)
+    if (blockTimer == null)
       return; // prior to game lifespan start, ignore input
     
     // only allow pause-unpause toggle via esc if game is not over
@@ -354,57 +480,44 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
       togglePause(System.currentTimeMillis());
       return;
     }
-
-    // key events in switch may result in a higher score; update ttd interval
-    if (timer.isRunning()) // only respond to these keys if unpaused
-    {
-      switch (e.getKeyCode()) {
-        case KeyEvent.VK_A ->
-          movePiece(-1);
-        case KeyEvent.VK_D ->
-          movePiece(1);
-        case KeyEvent.VK_S ->
-          movePieceDown();
-        case KeyEvent.VK_Q ->
-          rotateCCW();
-        case KeyEvent.VK_E ->
-          rotateCW();
-        case KeyEvent.VK_SPACE ->
-          fullDropPiece();
-        default -> {
-        }
-      }
-      // score might have changed. tick for updates to score, display
-      tick();
-    }
+    
+    // now it's safe to add pressed keys to the hash table
+    pressedKeys.add(e.getKeyCode());
   }
 
   @Override
   public void keyReleased(KeyEvent e) {
-    // not needed here, but could be implemented
+    pressedKeys.remove(e.getKeyCode());
   }
 
   @Override
-  public void keyTyped(KeyEvent e) {
-    // not relevant for our implementation
+  public void keyTyped(KeyEvent e) {/* not relevant for our implementation */}
+  
+  private void handleKeyInput() {
+    if (blockTimer.isRunning()) // only respond to these keys if unpaused
+    {
+      long now = System.currentTimeMillis();
+      processRotationInput();
+      processHorizontalInput(now);
+      processDownwardInput(now);
+      tick(); // score might have changed. tick for updates to score, display
+    }
   }
 
   @Override
   public void actionPerformed(ActionEvent e) {
-    if (e.getSource() == timer) {
-      // in scope here means event fired. update last timer event timestamp
+    if (e.getSource() == blockTimer) {
+      // in scope here means event fired. update last blockTimer event timestamp
       ttdIntervalJunctureMillis = System.currentTimeMillis();
       timePaused = 0; // impossible for paused time to have elapsed at juncture
 
-      // timer fired, move current airborne block down one row and tick
+      // blockTimer fired, move current airborne block down one row and tick
       movePieceDown();
       tick();
       return;
     }
     if (e.getSource() == pauseMenuPanel.getRestartButton()) {
       reinitializeGame();
-      if (pauseMenuPanel.musicHandler.doingPlayback())
-        pauseMenuPanel.musicHandler.startMusic();
       gameStartLifespan();
       return;
     }

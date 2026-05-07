@@ -8,7 +8,8 @@ import javarominoes.view.ParallaxScrollPanel;
 import javarominoes.view.MainMenuPanel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javarominoes.model.ChiptuneSynthMusicHandler;
+import javarominoes.model.KorobeinikiMusicHandler;
+import javarominoes.model.MusicHandler;
 import javarominoes.view.PauseMenuPanel;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
@@ -34,12 +35,12 @@ public class Javarominoes implements ActionListener {
 
     gameController = new GameController();
     
-    // refreshrate: 75hz, layer size geometric series common ratio: 0.8
-    parallaxPanel = new ParallaxScrollPanel(75, 0.8f);
+    // refreshrate: 75hz, layer size geometric series common ratio: 0.5
+    parallaxPanel = new ParallaxScrollPanel(75, 0.5f);
     mainMenuPanel = new MainMenuPanel();
     
-    // default to custom synthesizer
-    mainMenuPanel.setMusicHandler(new ChiptuneSynthMusicHandler());
+    // default to custom synthesizer, starting at 0.5 volume. let app handle playback
+    mainMenuPanel.setMusicHandler(new KorobeinikiMusicHandler(0.5));
     
     menuContainer = new JLayeredPane() {
       @Override
@@ -76,13 +77,9 @@ public class Javarominoes implements ActionListener {
   }
   
   private void doFramePlayGame() {
-    if (gameController == null)
-    {
-      gameController = new GameController();
-      gameController.getPauseMenuPanel()
-              .setMusicHandler(MainMenuPanel.musicHandler);
-    }
     
+    gameController.getPauseMenuPanel()
+              .setMusicHandler(MainMenuPanel.musicHandler);
     javarominoes.add(gameController);
     
     javarominoes.revalidate();
@@ -100,6 +97,9 @@ public class Javarominoes implements ActionListener {
   }
   
   private void doFrameAddMenu() {
+    mainMenuPanel.setMusicHandler(PauseMenuPanel.musicHandler);
+    MainMenuPanel.musicHandler.setSpeed(MusicHandler.BASE_SPEED);
+    
     javarominoes.add(menuContainer);
     javarominoes.revalidate();
     javarominoes.repaint();

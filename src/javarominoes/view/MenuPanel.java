@@ -4,33 +4,25 @@
  */
 package javarominoes.view;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.HashSet;
-import java.util.Hashtable;
-import javarominoes.model.ChiptuneSynthMusicHandler;
-import javarominoes.model.MidiMusicHandler;
+import javarominoes.model.FlashmanMusicHandler;
+import javarominoes.model.KorobeinikiMusicHandler;
+import javarominoes.model.MidiTetrisMusicHandler;
 import javarominoes.model.MusicHandler;
 import javax.sound.midi.MidiUnavailableException;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JSlider;
-import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  *
@@ -43,9 +35,9 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   protected static final String FONTNAME = "Monospaced";
   protected static final float BASE_PT = 10f;
   protected static final float LABEL_FONT_PT = 48f;
-  protected static final float BUTTON_FONT_PT = 13f;
-  protected static final int BUTTON_WIDTH_PX = 200;
-  protected static final int BUTTON_HEIGHT_PX = 40;
+  protected static final float BUTTON_FONT_PT = 18f;
+  protected static final int BUTTON_WIDTH_PX = 280;
+  protected static final int BUTTON_HEIGHT_PX = 60;
 
   private static final int SOUND_BUTTON_W_PX = 150;
   private static final int SOUND_BUTTON_H_PX = 30;
@@ -55,15 +47,17 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   protected static final Insets HEADER_P = new Insets(20, 0, 20, 0);
   protected static final Insets STD_P = new Insets(10, 20, 10, 20);
 
-  private static final String TYPE_TEXT = "Music Type";
+  private static final String TYPE_TEXT = "Music";
   private static final String STOP_TEXT = "Stop";
   private static final String START_TEXT = "Start";
 
   public static MusicHandler musicHandler;
+  
+  private static int currentMusicHandler = 0;
 
   protected final JButton swapMusicButton;
   protected final JButton toggleMusicButton;
-  protected final VolumeSliderPanel volumeSliderPanel;
+  protected final VolumeSliderPanel volumeSlider;
 
   protected MenuPanel() {
     setLayout(new GridBagLayout());
@@ -75,11 +69,11 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
     toggleMusicButton = buildSoundButton(buildStartStopLabel(), 
             Color.RED, Color.YELLOW);
     
-    volumeSliderPanel = new VolumeSliderPanel(0, 100, 100);
+    volumeSlider = new VolumeSliderPanel(0, 100, 50);
     
-    volumeSliderPanel.getSlider().addChangeListener((ChangeEvent e) -> {
-      double volumeSlider = volumeSliderPanel.getSlider().getValue() / 100.0;
-      musicHandler.setVolume(volumeSlider);
+    volumeSlider.getSlider().addChangeListener((ChangeEvent e) -> {
+      double volSldr = this.volumeSlider.getSlider().getValue() / 100.0;
+      musicHandler.setVolume(volSldr);
     });
     
     swapMusicButton.addActionListener(MenuPanel.this);
@@ -129,7 +123,7 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
     audioPanel.setBorder(BorderFactory.createTitledBorder("Audio"));
     audioPanel.add(toggleMusicButton);
     audioPanel.add(swapMusicButton);
-    audioPanel.add(volumeSliderPanel);
+    audioPanel.add(volumeSlider);
     audioPanel.setOpaque(true);
     audioPanel.setDoubleBuffered(true);
     return audioPanel;
@@ -201,140 +195,41 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
     toggleMusicButton.setText(buildStartStopLabel());
     toggleMusicButton.repaint();
   }
-
+  
   @Override
   public void actionPerformed(ActionEvent evt) {
-    double currVol = musicHandler == null ? 1.0 : musicHandler.getVolume();
+    double currVol = volumeSlider == null ? 0.5 : volumeSlider.getVolumeDouble();
+    double currSpeed = musicHandler == null ? 1.0 : musicHandler.getSpeed();
+    boolean doingPlayback = musicHandler.doingPlayback();
     if (evt.getSource() == swapMusicButton) {
       musicHandler.stopMusic();
-      if (musicHandler.getMusicType().equals("Midi")) {
-        musicHandler = new ChiptuneSynthMusicHandler();
-      } else {
-        try {
-        musicHandler = new MidiMusicHandler();
-        } catch (MidiUnavailableException e) {
-          System.err.println("Could not find korobeiniki.mid in resources.");
-          musicHandler = new ChiptuneSynthMusicHandler();
-        }
+      currentMusicHandler = (currentMusicHandler + 1) % 3;
+      switch (currentMusicHandler) {
+        case 0:
+          musicHandler = new KorobeinikiMusicHandler(doingPlayback, currVol, currSpeed);
+          break;
+        case 1:
+          try {
+            musicHandler = new MidiTetrisMusicHandler(doingPlayback, currVol, currSpeed);
+          } catch (MidiUnavailableException e) {
+            System.err.println("Could not find korobeiniki.mid in resources.");
+            musicHandler = new KorobeinikiMusicHandler(doingPlayback, currVol, currSpeed);
+          } break;
+        case 2:
+          musicHandler = new FlashmanMusicHandler(doingPlayback, currVol, currSpeed);
+          break;
+        default:
+          break;
       }
-      musicHandler.setVolume(currVol);
-      musicHandler.startMusic();
       refreshMusicTypeText();
     }
     if (evt.getSource() == toggleMusicButton) {
       if (musicHandler.doingPlayback()) {
         musicHandler.stopMusic();
-        refreshStartStopText();
       }
-    }
-  }
-
-  protected class VolumeSliderPanel extends JPanel implements ChangeListener {
-
-    private final JSlider volSld;
-    private final ResizableLabel volLabel;
-    private int volumePercent;
-
-    public VolumeSliderPanel(int min, int max, int initial) {
-      this.setLayout(new BorderLayout());
-
-      // init the slider
-      volSld = new JSlider(JSlider.HORIZONTAL, min, max, initial);
-      volSld.setMajorTickSpacing(5);
-      volSld.setMinorTickSpacing(1);
-      volSld.setPaintTicks(true);
-      volSld.setPaintLabels(true);
-      volSld.setLabelTable(this.createLabelTable(max, min));
-
-      volumePercent = initial;
-      volLabel = new ResizableLabel(volumePercent + "%",
-              JLabel.CENTER, this);
-      Border lB = BorderFactory.createLineBorder(Color.GRAY, 1);
-      Border pB = BorderFactory.createEmptyBorder(3, 3, 3, 3);
-
-      this.initSliderChangeListener();
-      this.setBorder(BorderFactory.createCompoundBorder(lB, pB));
-      this.setBackground(new Color(214 / 255.0f, 214 / 255.0f, 214 / 255.0f));
-      this.add(volSld, BorderLayout.NORTH);
-      this.add(volLabel, BorderLayout.SOUTH);
-      
-      this.setOpaque(true);
-      this.setDoubleBuffered(true);
-    }
-
-    private Hashtable<Integer, ResizableLabel> createLabelTable(int max, int min) {
-      Hashtable<Integer, ResizableLabel> lTab;
-      lTab = new Hashtable<>();
-
-      lTab.put(min, new ResizableLabel(Integer.toString(min / 10), JLabel.CENTER, this));
-      lTab.put((min + max) / 2,
-              new ResizableLabel(Integer.toString(max / 20),
-                      JLabel.CENTER, this));
-      lTab.put(max, new ResizableLabel(Integer.toString(max / 10), JLabel.CENTER, this));
-
-      return lTab;
-    }
-
-    private void initSliderChangeListener() {
-      volSld.addChangeListener(this);
-    }
-
-    // changelistener callback
-    @Override
-    public void stateChanged(ChangeEvent e) {
-      volumePercent = volSld.getValue();
-      volLabel.setText(volumePercent + "%");
-    }
-
-    public int getVolumePercent() {
-      return this.volumePercent;
-    }
-
-    public JSlider getSlider() {
-      return this.volSld;
-    }
-
-    public int getSliderHeight() {
-      return this.getHeight();
-    }
-
-    public int getSliderWidth() {
-      return this.getWidth();
-    }
-
-    class ResizableLabel extends JLabel {
-
-      VolumeSliderPanel vsp;
-      private int cachedFontSz = -1;
-
-      public ResizableLabel(String txt, int align, VolumeSliderPanel vsp) {
-        super(txt, align);
-        this.vsp = vsp;
-        // listen for slider-panel resizes instead of recomputing in paint
-        vsp.addComponentListener(new java.awt.event.ComponentAdapter() {
-          @Override
-          public void componentResized(java.awt.event.ComponentEvent e) {
-            refreshFontIfNeeded();
-          }
-        });
-      }
-
-      private void refreshFontIfNeeded() {
-        int panW = vsp.getSliderWidth();
-        int panH = vsp.getSliderHeight();
-        int fontSz = Math.min(panW / 9, panH / 6);
-        if (fontSz <= 0 || fontSz == cachedFontSz)
-          return;
-        cachedFontSz = fontSz;
-        setFont(new Font(Font.MONOSPACED, Font.BOLD, fontSz));
-      }
-
-      @Override
-      protected void paintComponent(Graphics g) {
-        if (cachedFontSz < 0)
-          refreshFontIfNeeded(); // first-paint bootstrap
-        super.paintComponent(g);
-      }
+      else
+        musicHandler.startMusic();
+      refreshStartStopText();
     }
   }
 }
