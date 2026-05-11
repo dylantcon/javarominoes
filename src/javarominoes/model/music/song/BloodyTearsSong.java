@@ -1,0 +1,258 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package javarominoes.model.music.song;
+
+// Generated from SQ_Bloody_Tears.mid
+
+import javarominoes.model.synth.Track;
+
+// (Castlevania II: Simon's Quest, by Kenichi Matsubara).
+
+public class BloodyTearsSong implements ChiptuneSong {
+
+    @Override
+    public Track getLead() {
+        Track t = new Track().withDefaults(LEAD_VOL, LEAD_DUTY);
+        t.addNotes(
+            AS5, 7,  F5, 7,  F6, 8,  F5, 7,  DS6, 7,  F5, 7,
+            CS6, 7,  F5, 8,  C6, 7,  F5, 7,  CS6, 7,  F5, 7,
+            C6, 8,  F5, 7,  AS5, 7,  F5, 7,  C6, 7,  F5, 8,
+            CS6, 7,  F5, 7,  DS6, 7,  F5, 7,  CS6, 8,  F5, 7,
+            C6, 7,  F5, 7,  GS5, 7,  F5, 8,  C6, 7,  F5, 7,
+            AS5, 7,  F5, 7,  AS5, 8,  F5, 7,  F6, 7,  F5, 7,
+            DS6, 7,  F5, 8,  CS6, 7,  F5, 7,  C6, 7,  F5, 7,
+            CS6, 8,  F5, 7,  C6, 7,  F5, 7,  AS5, 7,  F5, 8,
+            C6, 7,  F5, 7,  CS6, 7,  F5, 7,  DS6, 8,  F5, 7,
+            CS6, 7,  F5, 7,  C6, 7,  F5, 8,  GS5, 7,  F5, 7,
+            C6, 7,  F5, 7,  AS5, 8,  F5, 7,  DS5, 14,  GS5, 7,
+            F5, 58,  R, 7,  DS5, 15,  CS5, 14,  DS5, 22,  GS5, 21,
+            F5, 43,  DS5, 15,  CS5, 14,  DS5, 15,  GS5, 7,  F5, 57,
+            R, 8,  DS5, 14,  F5, 14,  FS5, 22,  GS5, 29,  R, 7,
+            F5, 22,  FS5, 28,  R, 8,  DS5, 14,  GS5, 7,  F5, 58,
+            R, 7,  DS5, 14,  CS5, 15,  DS5, 21,  GS5, 22,  F5, 43,
+            DS5, 15,  CS5, 14,  DS5, 14,  GS5, 8,  F5, 57,  R, 7,
+            DS5, 15,  F5, 14,  FS5, 22,  GS5, 29,  R, 7,  F5, 14,
+            G5, 15,  A5, 14,  C6, 14,  C5, 22,  AS4, 29,  R, 7,
+            C5, 22,  AS4, 28,  R, 8,  C5, 21,  AS4, 29,  R, 7,
+            CS5, 7,  CS6, 8,  C5, 7,  C6, 7,  AS4, 7,  AS5, 7,
+            GS4, 8,  GS5, 7,  C5, 14,  AS4, 7,  AS5, 29,  R, 7,
+            C5, 15,  AS4, 7,  AS5, 29,  R, 7,  C5, 14,  AS4, 8,
+            AS5, 28,  R, 8,  CS6, 14,  DS6, 14,  C6, 8,  CS6, 21,
+            AS5, 7,  F5, 8,  F6, 7,  F5, 7,  DS6, 7,  F5, 7,
+            CS6, 8,  F5, 7,  C6, 7,  F5, 7,  CS6, 7,  F5, 8,
+            C6, 7,  F5, 7,  AS5, 7,  F5, 7,  C6, 8,  F5, 7,
+            CS6, 7,  F5, 7,  DS6, 7,  F5, 8,  CS6, 7,  F5, 7,
+            C6, 7,  F5, 7,  GS5, 8,  F5, 7,  C6, 7,  F5, 7,
+            AS5, 7,  F5, 8,  AS5, 7,  F5, 7,  F6, 7,  F5, 7,
+            DS6, 8,  F5, 7,  CS6, 7,  F5, 7,  C6, 7,  F5, 8,
+            CS6, 7,  F5, 7,  C6, 7,  F5, 7,  AS5, 8,  F5, 7,
+            C6, 7,  F5, 7,  CS6, 7,  F5, 8,  DS6, 7,  F5, 7,
+            CS6, 7,  F5, 7,  C6, 8,  F5, 7,  GS5, 7,  F5, 7,
+            C6, 7,  F5, 8,  AS5, 7,  F5, 7,  DS5, 14,  GS5, 8,
+            F5, 57,  R, 7,  DS5, 15,  CS5, 14,  DS5, 22,  GS5, 21,
+            F5, 44,  DS5, 14,  CS5, 14,  DS5, 15,  GS5, 7,  F5, 58,
+            R, 7,  DS5, 14,  F5, 15,  FS5, 21,  GS5, 29,  R, 7,
+            F5, 22,  FS5, 29,  R, 7,  DS5, 14,  GS5, 7,  F5, 58,
+            R, 7,  DS5, 15,  CS5, 14,  DS5, 22,  GS5, 21,  F5, 43,
+            DS5, 15,  CS5, 14,  DS5, 15,  GS5, 7,  F5, 57,  R, 8,
+            DS5, 14,  F5, 14,  FS5, 22,  GS5, 29,  R, 7,  F5, 14,
+            G5, 15,  A5, 14,  C6, 15,  C5, 21,  AS4, 29,  R, 7,
+            C5, 22,  AS4, 29,  R, 7,  C5, 21,  AS4, 29,  R, 7,
+            CS5, 8,  CS6, 7,  C5, 7,  C6, 7,  AS4, 7,  AS5, 8,
+            GS4, 7,  GS5, 7,  C5, 14,  AS4, 8,  AS5, 28,  R, 8,
+            C5, 14,  AS4, 7,  AS5, 29,  R, 7,  C5, 15,  AS4, 7,
+            AS5, 29,  R, 7,  CS6, 14,  DS6, 15,  C6, 7,  CS6, 21
+        );
+        return t;
+    }
+
+    @Override
+    public Track getHarmony() {
+        Track t = new Track().withDefaults(HARMONY_VOL, HARMONY_DUTY);
+        t.addNotes(
+            R, 497,  C4, 7,  AS3, 7,  C4, 7,  CS4, 15,  DS4, 14,
+            F4, 29,  R, 151,  DS4, 7,  CS4, 8,  DS4, 7,  F4, 14,
+            FS4, 15,  AS4, 28,  C5, 58,  AS4, 58,  R, 36,  C4, 7,
+            AS3, 7,  C4, 7,  CS4, 15,  DS4, 14,  F4, 29,  R, 151,
+            DS4, 7,  CS4, 7,  DS4, 8,  F4, 14,  FS4, 14,  GS4, 15,
+            AS4, 14,  C5, 58,  R, 230,  CS5, 15,  C5, 14,  AS4, 22,
+            GS4, 7,  R, 727,  C4, 7,  AS3, 7,  C4, 8,  CS4, 14,
+            DS4, 14,  F4, 29,  R, 151,  DS4, 8,  CS4, 7,  DS4, 7,
+            F4, 14,  FS4, 15,  AS4, 29,  C5, 57,  AS4, 58,  R, 36,
+            C4, 7,  AS3, 7,  C4, 7,  CS4, 15,  DS4, 14,  F4, 29,
+            R, 151,  DS4, 7,  CS4, 8,  DS4, 7,  F4, 14,  FS4, 15,
+            GS4, 14,  AS4, 14,  C5, 58,  R, 230,  CS5, 15,  C5, 14,
+            AS4, 22,  GS4, 7,  R, 230
+        );
+        return t;
+    }
+
+    @Override
+    public Track getBass() {
+        Track t = new Track().withDefaults(BASS_VOL, BASS_DUTY);
+        t.addNotes(
+            AS2, 115,  F2, 58,  F3, 57,  AS2, 116,  F2, 57,  F3, 58,
+            AS2, 14,  AS3, 7,  AS2, 22,  AS3, 14,  AS2, 15,  AS3, 14,
+            AS2, 15,  AS3, 14,  GS2, 14,  GS3, 8,  GS2, 21,  GS3, 15,
+            GS2, 14,  GS3, 14,  GS2, 15,  GS3, 14,  FS2, 15,  FS3, 7,
+            FS2, 21,  FS3, 15,  FS2, 14,  FS3, 15,  FS2, 14,  FS3, 14,
+            F2, 15,  F3, 7,  F2, 22,  F3, 14,  F2, 14,  F3, 15,
+            F2, 14,  F3, 15,  AS2, 14,  AS3, 7,  AS2, 22,  AS3, 14,
+            AS2, 15,  AS3, 14,  AS2, 14,  AS3, 15,  GS2, 14,  GS3, 7,
+            GS2, 22,  GS3, 14,  GS2, 15,  GS3, 14,  GS2, 15,  GS3, 14,
+            FS2, 14,  FS3, 8,  FS2, 21,  FS3, 15,  FS2, 14,  FS3, 14,
+            FS2, 15,  FS3, 14,  F2, 15,  F3, 7,  F2, 21,  F3, 15,
+            F2, 14,  GS2, 7,  FS3, 8,  AS2, 7,  GS3, 7,  C3, 7,
+            C4, 7,  AS2, 29,  R, 7,  AS2, 8,  AS3, 7,  GS2, 57,
+            R, 8,  GS2, 14,  GS3, 7,  FS2, 29,  R, 7,  FS3, 7,
+            GS2, 44,  R, 7,  GS3, 7,  AS2, 29,  R, 7,  AS2, 7,
+            AS3, 7,  GS2, 58,  FS2, 43,  R, 7,  FS3, 8,  GS2, 14,
+            GS3, 14,  GS2, 15,  GS3, 14,  AS2, 115,  F2, 58,  F3, 58,
+            AS2, 115,  F2, 57,  F3, 58,  AS2, 14,  AS3, 8,  AS2, 21,
+            AS3, 15,  AS2, 14,  AS3, 14,  AS2, 15,  AS3, 14,  GS2, 15,
+            GS3, 7,  GS2, 21,  GS3, 15,  GS2, 14,  GS3, 15,  GS2, 14,
+            GS3, 14,  FS2, 15,  FS3, 7,  FS2, 22,  FS3, 14,  FS2, 14,
+            FS3, 15,  FS2, 14,  FS3, 15,  F2, 14,  F3, 7,  F2, 22,
+            F3, 14,  F2, 15,  F3, 14,  F2, 14,  F3, 15,  AS2, 14,
+            AS3, 7,  AS2, 22,  AS3, 14,  AS2, 15,  AS3, 14,  AS2, 15,
+            AS3, 14,  GS2, 14,  GS3, 8,  GS2, 21,  GS3, 15,  GS2, 14,
+            GS3, 14,  GS2, 15,  GS3, 14,  FS2, 15,  FS3, 7,  FS2, 21,
+            FS3, 15,  FS2, 14,  FS3, 15,  FS2, 14,  FS3, 14,  F2, 15,
+            F3, 7,  F2, 22,  F3, 14,  F2, 14,  GS2, 8,  FS3, 7,
+            AS2, 7,  GS3, 7,  C3, 7,  C4, 8,  AS2, 28,  R, 8,
+            AS2, 7,  AS3, 7,  GS2, 58,  R, 7,  GS2, 14,  GS3, 7,
+            FS2, 29,  R, 7,  FS3, 8,  GS2, 43,  R, 7,  GS3, 7,
+            AS2, 29,  R, 7,  AS2, 7,  AS3, 8,  GS2, 57,  FS2, 43,
+            R, 8,  FS3, 7,  GS2, 14,  GS3, 15,  GS2, 14,  GS3, 14
+        );
+        return t;
+    }
+
+    @Override
+    public Track getDrums() {
+        Track t = new Track().withDefaults(DRUM_VOL, DRUM_DUTY);
+        t.addNotes(
+            KICK, 3,  R, 11,  KICK, 3,  R, 5,  KICK, 3,  R, 4,
+            KICK, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 5,
+            KICK, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 11,  KICK, 3,  R, 5,  KICK, 3,  R, 4,
+            KICK, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 5,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 11,  KICK, 3,  R, 5,  KICK, 3,  R, 4,
+            KICK, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 5,
+            KICK, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            KICK, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 11,  SNARE, 3,  R, 5,  SNARE, 3,  R, 4,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 11,  KICK, 3,  R, 12,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 5,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 11,  KICK, 3,  R, 5,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 4,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 12,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 12,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 5,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 5,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 11,  KICK, 3,  R, 5,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 11,  KICK, 3,  R, 12,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            KICK, 3,  R, 5,  SNARE, 3,  R, 4,  SNARE, 3,  R, 4,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 12,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 5,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 12,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 4,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 5,  SNARE, 3,  R, 11,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 5,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 5,  SNARE, 3,  R, 4,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 12,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 5,
+            SNARE, 3,  R, 4,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            KICK, 3,  R, 5,  SNARE, 3,  R, 4,  SNARE, 3,  R, 4,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 12,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 5,  SNARE, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 4,  KICK, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 11,
+            KICK, 3,  R, 5,  KICK, 3,  R, 4,  KICK, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 5,  KICK, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 11,
+            KICK, 3,  R, 5,  KICK, 3,  R, 4,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 5,  KICK, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 11,
+            KICK, 3,  R, 5,  KICK, 3,  R, 4,  KICK, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 5,  KICK, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  KICK, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 12,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 4,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 11,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 5,  KICK, 3,  R, 4,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 12,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 4,  KICK, 3,  R, 12,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 5,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 11,  KICK, 3,  R, 5,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 11,  KICK, 3,  R, 12,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 5,  SNARE, 3,  R, 4,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 12,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 5,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 12,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 5,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 4,  KICK, 3,  R, 12,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            KICK, 3,  R, 5,  SNARE, 3,  R, 11,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 4,  SNARE, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 5,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 5,  SNARE, 3,  R, 4,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 12,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 4,  KICK, 3,  R, 4,  SNARE, 3,  R, 5,
+            SNARE, 3,  R, 4,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 11,
+            KICK, 3,  R, 12,  SNARE, 3,  R, 11,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 5,  SNARE, 3,  R, 4,  SNARE, 3,  R, 4,
+            KICK, 3,  R, 11,  SNARE, 3,  R, 12,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 12,  KICK, 3,  R, 11,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 5,  KICK, 3,  R, 4,
+            SNARE, 3,  R, 4,  SNARE, 3,  R, 4,  KICK, 3,  R, 12,
+            SNARE, 3,  R, 11,  KICK, 3,  R, 4,  SNARE, 3,  R, 4,
+            SNARE, 3,  R, 12,  KICK, 3,  R, 11,  SNARE, 3,  R, 12,
+            KICK, 3,  R, 4,  SNARE, 3,  R, 4,  SNARE, 3,  R, 4,
+            SNARE, 3,  R, 4
+        );
+        return t;
+    }
+}

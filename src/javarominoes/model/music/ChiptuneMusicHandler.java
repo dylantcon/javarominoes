@@ -2,9 +2,9 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model;
+package javarominoes.model.music;
 
-import javarominoes.model.synth.ChiptuneSong;
+import javarominoes.model.music.song.ChiptuneSong;
 import javarominoes.model.synth.ChiptuneSynth;
 
 /**

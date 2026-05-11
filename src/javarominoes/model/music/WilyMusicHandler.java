@@ -2,20 +2,21 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model;
+package javarominoes.model.music;
 
-import javarominoes.model.synth.KorobeinikiSong;
+import javarominoes.model.music.song.WilySong;
 
 /**
  *
  * @author dylan
  */
-public class KorobeinikiMusicHandler extends ChiptuneMusicHandler {
-  public KorobeinikiMusicHandler() {
-    super(new KorobeinikiSong());
+public class WilyMusicHandler extends ChiptuneMusicHandler{
+
+  public WilyMusicHandler() {
+    super(new WilySong());
   }
-  
-  public KorobeinikiMusicHandler(boolean pb, double vol, double speed) {
+
+  public WilyMusicHandler(boolean pb, double vol, double speed) {
     this();
     
     setVolume(vol);
@@ -24,13 +25,14 @@ public class KorobeinikiMusicHandler extends ChiptuneMusicHandler {
       startMusic();
   }
   
-  public KorobeinikiMusicHandler(double vol) {
+  public WilyMusicHandler(double vol) {
     this();
     setVolume(vol);
   }
   
   @Override
   public String getMusicType() {
-    return "Korobeiniki, Retro";
+    return "Dr. Wily, Stage 1 - MM2";
   }
+  
 }

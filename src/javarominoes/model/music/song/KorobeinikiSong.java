@@ -2,7 +2,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model.synth;
+package javarominoes.model.music.song;
+
+import javarominoes.model.synth.Note;
+import javarominoes.model.synth.Track;
 
 /**
  *

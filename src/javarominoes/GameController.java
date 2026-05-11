@@ -18,6 +18,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import javarominoes.model.music.MusicHandler;
 
 /**
  *
@@ -335,6 +336,13 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
   private boolean checkCollision() {
     return !board.isPossibleMovement(posX, posY, currentPiece, currentRotation);
   }
+  
+  private void processGameEnd() {
+    pauseMenuPanel.setGameOver();
+    togglePause(System.currentTimeMillis());
+    PauseMenuPanel.musicHandler.setSpeed(MusicHandler.GAME_OVER_SPEED);
+    
+  }
 
   public void movePieceDown() {
     posY++;
@@ -347,8 +355,7 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
         infoPanel.increaseScore(infoPanel.getLineClearScore(board.deletePossibleLines()));
         generateNewPiece();
       } else {
-        pauseMenuPanel.setGameOver();
-        togglePause(System.currentTimeMillis());
+        processGameEnd();
       }
     }
     boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
@@ -369,8 +376,7 @@ public class GameController extends JLayeredPane implements KeyListener, ActionL
       generateNewPiece();
       boardPanel.updateCurrentPiece(currentPiece, currentRotation, posX, posY);
     } else {
-      pauseMenuPanel.setGameOver();
-      togglePause(System.currentTimeMillis());
+      processGameEnd();
     }
   }
 

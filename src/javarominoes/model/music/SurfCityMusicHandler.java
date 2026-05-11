@@ -2,19 +2,21 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model;
-import javarominoes.model.synth.FlashmanSong;
+package javarominoes.model.music;
+
+import javarominoes.model.music.song.SurfCitySong;
 
 /**
  *
  * @author dylan
  */
-public class FlashmanMusicHandler extends ChiptuneMusicHandler {
-  public FlashmanMusicHandler() {
-    super(new FlashmanSong());
+public class SurfCityMusicHandler extends ChiptuneMusicHandler {
+
+  public SurfCityMusicHandler() {
+    super(new SurfCitySong());
   }
   
-  public FlashmanMusicHandler(boolean pb, double vol, double speed) {
+  public SurfCityMusicHandler(boolean pb, double vol, double speed) {
     this();
     
     setVolume(vol);
@@ -25,6 +27,7 @@ public class FlashmanMusicHandler extends ChiptuneMusicHandler {
   
   @Override
   public String getMusicType() {
-    return "Flash Man, MM2";
+    return "Surf City - Battletoads";
   }
+  
 }

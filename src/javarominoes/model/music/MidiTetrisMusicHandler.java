@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model;
+package javarominoes.model.music;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +27,16 @@ public class MidiTetrisMusicHandler implements MusicHandler {
   private Synthesizer synthesizer;
   private double currentVolume = 0.5;
 
-  public MidiTetrisMusicHandler() throws MidiUnavailableException {
-    
-    initializeSequencerAndSynthesizer();
+  public MidiTetrisMusicHandler() {
     
     try {
+      initializeSequencerAndSynthesizer();
+    } catch (MidiUnavailableException ex) {
+      System.out.println(Arrays.toString(ex.getStackTrace()));
+    }
+    try {
       loadMidi();
-    } catch (IOException | InvalidMidiDataException e) {
+    } catch (IOException | InvalidMidiDataException  e) {
       System.out.println(Arrays.toString(e.getStackTrace()));
     }
   }
@@ -117,7 +120,7 @@ public class MidiTetrisMusicHandler implements MusicHandler {
 
   @Override
   public String getMusicType() {
-    return "Midi";
+    return "Korobeiniki - Midi";
   }
 
   @Override

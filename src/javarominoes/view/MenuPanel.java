@@ -13,10 +13,15 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javarominoes.model.FlashmanMusicHandler;
-import javarominoes.model.KorobeinikiMusicHandler;
-import javarominoes.model.MidiTetrisMusicHandler;
-import javarominoes.model.MusicHandler;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javarominoes.model.music.FlashmanMusicHandler;
+import javarominoes.model.music.KorobeinikiMusicHandler;
+import javarominoes.model.music.MidiTetrisMusicHandler;
+import javarominoes.model.music.MusicHandler;
 import javax.sound.midi.MidiUnavailableException;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -41,7 +46,7 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
 
   private static final int SOUND_BUTTON_W_PX = 150;
   private static final int SOUND_BUTTON_H_PX = 30;
-  private static final float SOUND_BUTTON_FONT_PT = 10f;
+  private static final float SOUND_BUTTON_FONT_PT = 8f;
 
   protected static final Font FONTBASE = new Font(FONTNAME, 0, (int) BASE_PT);
   protected static final Insets HEADER_P = new Insets(20, 0, 20, 0);
@@ -52,8 +57,8 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   private static final String START_TEXT = "Start";
 
   public static MusicHandler musicHandler;
-  
-  private static int currentMusicHandler = 0;
+
+  private static int hdlIdx = 0;
 
   protected final JButton swapMusicButton;
   protected final JButton toggleMusicButton;
@@ -64,22 +69,22 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
 
     MenuPanel.musicHandler = null;
 
-    swapMusicButton = buildSoundButton(buildMusicTypeLabel(), 
-            Color.WHITE, Color.BLACK);
-    toggleMusicButton = buildSoundButton(buildStartStopLabel(), 
-            Color.RED, Color.YELLOW);
-    
+    swapMusicButton = buildSoundButton(buildMusicTypeLabel(),
+    Color.WHITE, Color.BLACK);
+    toggleMusicButton = buildSoundButton(buildStartStopLabel(),
+    Color.RED, Color.YELLOW);
+
     volumeSlider = new VolumeSliderPanel(0, 100, 50);
-    
+
     volumeSlider.getSlider().addChangeListener((ChangeEvent e) -> {
       double volSldr = this.volumeSlider.getSlider().getValue() / 100.0;
       musicHandler.setVolume(volSldr);
     });
-    
+
     swapMusicButton.addActionListener(MenuPanel.this);
     toggleMusicButton.addActionListener(MenuPanel.this);
   }
-  
+
   public void setMusicHandler(MusicHandler music) {
     musicHandler = music;
     refreshMusicTypeText();
@@ -98,15 +103,15 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
 
     return menuButton;
   }
-  
+
   protected final JButton buildMenuButton(String label, Color fg, Color bg) {
-    return buildButton(label, fg, bg, 
-            BUTTON_WIDTH_PX, BUTTON_HEIGHT_PX, BUTTON_FONT_PT);
+    return buildButton(label, fg, bg,
+    BUTTON_WIDTH_PX, BUTTON_HEIGHT_PX, BUTTON_FONT_PT);
   }
 
   private JButton buildSoundButton(String label, Color fg, Color bg) {
     JButton btn = buildButton(label, fg, bg,
-            SOUND_BUTTON_W_PX, SOUND_BUTTON_H_PX, SOUND_BUTTON_FONT_PT);
+    SOUND_BUTTON_W_PX, SOUND_BUTTON_H_PX, SOUND_BUTTON_FONT_PT);
     // BoxLayout.Y_AXIS clamps each child to its maxWidth; JButton's UI
     // delegate returns preferredSize for max, which would pin width to
     // SOUND_BUTTON_W_PX. Unbound the width so the button stretches to
@@ -175,8 +180,9 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   }
 
   private String buildMusicTypeLabel() {
-    if (musicHandler == null)
+    if (musicHandler == null) {
       return "...";
+    }
     return TYPE_TEXT + ": " + musicHandler.getMusicType();
   }
 
@@ -186,8 +192,9 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   }
 
   private String buildStartStopLabel() {
-    if (musicHandler == null)
+    if (musicHandler == null) {
       return "...";
+    }
     return musicHandler.doingPlayback() ? STOP_TEXT : START_TEXT;
   }
 
@@ -195,40 +202,34 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
     toggleMusicButton.setText(buildStartStopLabel());
     toggleMusicButton.repaint();
   }
-  
+
   @Override
   public void actionPerformed(ActionEvent evt) {
+    boolean doPlay = musicHandler.doingPlayback();
     double currVol = volumeSlider == null ? 0.5 : volumeSlider.getVolumeDouble();
     double currSpeed = musicHandler == null ? 1.0 : musicHandler.getSpeed();
-    boolean doingPlayback = musicHandler.doingPlayback();
     if (evt.getSource() == swapMusicButton) {
       musicHandler.stopMusic();
-      currentMusicHandler = (currentMusicHandler + 1) % 3;
-      switch (currentMusicHandler) {
-        case 0:
-          musicHandler = new KorobeinikiMusicHandler(doingPlayback, currVol, currSpeed);
-          break;
-        case 1:
-          try {
-            musicHandler = new MidiTetrisMusicHandler(doingPlayback, currVol, currSpeed);
-          } catch (MidiUnavailableException e) {
-            System.err.println("Could not find korobeiniki.mid in resources.");
-            musicHandler = new KorobeinikiMusicHandler(doingPlayback, currVol, currSpeed);
-          } break;
-        case 2:
-          musicHandler = new FlashmanMusicHandler(doingPlayback, currVol, currSpeed);
-          break;
-        default:
-          break;
+      hdlIdx = (hdlIdx + 1) % MusicHandler.concretized.length;
+      try {
+        Constructor<?> cnstrct = MusicHandler.concretized[hdlIdx].getConstructor(
+        boolean.class, double.class, double.class);
+        try {
+          musicHandler = (MusicHandler) cnstrct.newInstance(doPlay, currVol, currSpeed);
+        } catch (ReflectiveOperationException ex) {
+          throw new IllegalStateException();
+        }
+      } catch (NoSuchMethodException | SecurityException ex) {
+        throw new IllegalStateException();
       }
       refreshMusicTypeText();
     }
-    if (evt.getSource() == toggleMusicButton) {
+    if (evt.getSource() == toggleMusicButton && musicHandler != null) {
       if (musicHandler.doingPlayback()) {
         musicHandler.stopMusic();
-      }
-      else
+      } else {
         musicHandler.startMusic();
+      }
       refreshStartStopText();
     }
   }

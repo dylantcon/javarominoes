@@ -4,6 +4,7 @@
  */
 package javarominoes.model.synth;
 
+import javarominoes.model.music.song.ChiptuneSong;
 import javax.sound.sampled.*;
 
 /**
@@ -143,17 +144,24 @@ public class ChiptuneSynth implements Runnable {
             if (n.midi < 0) {
               p1.noteOff();
             } else {
-              p1.noteOn(midiToFreq(n.midi), n.volume, n.duty, 0.6);
+              p1.noteOn(midiToFreq(n.midi), n.volume, n.duty, n.decay);
             }
           });
           stepTrack(p2Track, n -> {
             if (n.midi < 0) {
               p2.noteOff();
             } else {
-              p2.noteOn(midiToFreq(n.midi), n.volume, n.duty, 0.6);
+              p2.noteOn(midiToFreq(n.midi), n.volume, n.duty, n.decay);
             }
           });
           stepTrack(triTrack, n -> {
+            if (n.midi < 0) {
+              tri.noteOff();
+            } else {
+              tri.noteOn(midiToFreq(n.midi));
+            }
+          });
+          stepTrack(noiTrack, n -> {
             if (n.midi < 0) {
               noi.noteOff();
             } else {

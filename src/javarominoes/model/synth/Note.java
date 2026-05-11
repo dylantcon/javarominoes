@@ -12,21 +12,27 @@ package javarominoes.model.synth;
  * @author dylan
  */
 public class Note {
-
-  public final int midi;
-  public final int durationFrames;
-  public final double volume;
-  public final double duty;
-
-  public Note(int midi, int durationFrames, double volume, double duty) {
-    this.midi = midi;
-    this.durationFrames = durationFrames;
-    this.volume = volume;
-    this.duty = duty;
-  }
-
-  public static Note rest(int frames) {
-    return new Note(-1, frames, 0, 0.5);
-  }
-  
+    public final int midi;
+    public final int durationFrames;
+    public final double volume;
+    public final double duty;
+    public final double decay;          // NEW: per-note envelope decay rate
+    
+    public Note(int midi, int duration, double volume, double duty) {
+        this(midi, duration, volume, duty, DEFAULT_DECAY);
+    }
+    
+    public Note(int midi, int duration, double volume, double duty, double decay) {
+        this.midi = midi;
+        this.durationFrames = duration;
+        this.volume = volume;
+        this.duty = duty;
+        this.decay = decay;
+    }
+    
+    public static Note rest(int frames) {
+        return new Note(-1, frames, 0, 0.5, 0);
+    }
+    
+    private static final double DEFAULT_DECAY = 0.6;
 }
