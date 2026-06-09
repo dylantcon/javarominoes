@@ -2,7 +2,8 @@ package javarominoes.model.music.song;
 
 // Generated from contra-1.mid
 
-import javarominoes.model.synth.Track;
+import chiptunesynth.ChiptuneSong;
+import chiptunesynth.Track;
 
 // (Contra - Jungle / Stage 1, by Hidenori Maezawa)
 // Sequenced by Anthony Bellissimo (1997)
@@ -11,6 +12,11 @@ public class ContraJungleSong implements ChiptuneSong {
   @Override
   public Track getLead() {
     Track t = new Track().withDefaults(LEAD_VOL, LEAD_DUTY);
+    // Contra's lead is a wall of 6-frame sixteenths punctuated by big sustained
+    // payoff notes (AS4/108, DS4/108). The 14-frame vibrato delay leaves the
+    // sixteenth-note machine-gun runs razor-clean and reserves the wobble for
+    // those held notes, so they bloom instead of sitting there as a flat tone.
+    t.withVibrato(0.35, 5.5, 14);
     t.addNotes(
     C5, S, AS4, S, G4, S, F4, S, G4, S, F4, S,
     DS4, S, D4, S, DS4, S, D4, S, C4, S, AS3, S,
@@ -232,6 +238,9 @@ public class ContraJungleSong implements ChiptuneSong {
   @Override
   public Track getHarmony() {
     Track t = new Track().withDefaults(HARMONY_VOL, HARMONY_DUTY);
+    // Same treatment as the lead: the harmony shadows it in sixths/thirds and
+    // shares its long held notes (DS5/108, GS4/108), so match the vibrato.
+    t.withVibrato(0.3, 5.5, 14);
     t.addNotes(
     F5, S, DS5, S, C5, S, AS4, S, C5, S, AS4, S,
     GS4, S, G4, S, GS4, S, G4, S, F4, S, DS4, S,
@@ -570,7 +579,10 @@ public class ContraJungleSong implements ChiptuneSong {
 
   @Override
   public Track getDrums() {
-    Track t = new Track().withDefaults(DRUM_VOL, DRUM_DUTY);
+    // Contra's groove is load-bearing, and the dedicated snare/tom voices are
+    // velocity-driven, so hit them hard (0.9) to push the backbeat forward.
+    // (KICK ignores this and always plays full via KickVoice.)
+    Track t = new Track().withDefaults(0.9, DRUM_DUTY);
     t.addNotes(
     R, W, KICK, T, R, Q - T, SNARE, T, R, Q - T, KICK, T,
     R, DS, KICK, T, R, DS, SNARE, T, R, Q - T, KICK, T,

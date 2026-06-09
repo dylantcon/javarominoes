@@ -6,7 +6,8 @@ package javarominoes.model.music.song;
 
 // Generated from SQ_Bloody_Tears.mid
 
-import javarominoes.model.synth.Track;
+import chiptunesynth.ChiptuneSong;
+import chiptunesynth.Track;
 
 // (Castlevania II: Simon's Quest, by Kenichi Matsubara).
 
@@ -15,6 +16,12 @@ public class BloodyTearsSong implements ChiptuneSong {
     @Override
     public Track getLead() {
         Track t = new Track().withDefaults(LEAD_VOL, LEAD_DUTY);
+        // Bloody Tears' lead is a sustained pipe-organ line, not a plucky beep.
+        // A slower decay lets the long F5/AS4 pedals ring instead of dying on
+        // the default 0.6 fade, and the late-onset vibrato gives them the
+        // singing wobble. The 7-frame notes of the opening end before either the
+        // decay or the 10-frame vibrato delay can bite, so the runs stay crisp.
+        t.withDecay(0.3).withVibrato(0.35, 5.5, 10);
         t.addNotes(
             AS5, 7,  F5, 7,  F6, 8,  F5, 7,  DS6, 7,  F5, 7,
             CS6, 7,  F5, 8,  C6, 7,  F5, 7,  CS6, 7,  F5, 7,
@@ -71,6 +78,10 @@ public class BloodyTearsSong implements ChiptuneSong {
     @Override
     public Track getHarmony() {
         Track t = new Track().withDefaults(HARMONY_VOL, HARMONY_DUTY);
+        // The harmony is a held inner voice (C5/AS4 chords sustained ~58 frames);
+        // give it the same organ sustain so those chords bloom and ring under
+        // the lead rather than clicking off.
+        t.withDecay(0.3).withVibrato(0.3, 5.0, 12);
         t.addNotes(
             R, 497,  C4, 7,  AS3, 7,  C4, 7,  CS4, 15,  DS4, 14,
             F4, 29,  R, 151,  DS4, 7,  CS4, 8,  DS4, 7,  F4, 14,

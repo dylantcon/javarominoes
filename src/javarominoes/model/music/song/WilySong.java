@@ -6,7 +6,8 @@ package javarominoes.model.music.song;
 
 // Generated from mm2wily1.mid (Mega Man 2 - Dr. Wily Stage 1, Takashi Tateishi).
 
-import javarominoes.model.synth.Track;
+import chiptunesynth.ChiptuneSong;
+import chiptunesynth.Track;
 
 /**
  * 
@@ -17,6 +18,11 @@ public class WilySong implements ChiptuneSong {
     @Override
     public Track getLead() {
         Track t = new Track().withDefaults(LEAD_VOL, LEAD_DUTY);
+        // Wily Stage 1's lead alternates fast staccato runs with long sustained
+        // notes (CS5/60, B4/43, AS4/27, DS3/80). The 12-frame vibrato delay lets
+        // the runs fire clean while only the held notes pick up the wobble that
+        // makes the melody sing.
+        t.withVibrato(0.3, 5.5, 12);
         t.addNotes(
             CS4, 8,  R, 2,  E4, 4,  R, 1,  E4, 5,  R, 1,
             E4, 8,  R, 2,  E4, 4,  R, 1,  E4, 4,  R, 1,
@@ -112,6 +118,9 @@ public class WilySong implements ChiptuneSong {
     @Override
     public Track getHarmony() {
         Track t = new Track().withDefaults(HARMONY_VOL, HARMONY_DUTY);
+        // A touch of vibrato so the harmony's sustained countermelody notes
+        // breathe with the lead; the delay keeps its short stabs untouched.
+        t.withVibrato(0.25, 5.5, 14);
         t.addNotes(
             R, 10,  CS4, 4,  R, 1,  CS4, 5,  R, 1,  CS4, 8,
             R, 2,  CS4, 4,  R, 1,  CS4, 4,  R, 1,  CS4, 8,

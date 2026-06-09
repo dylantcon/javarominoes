@@ -4,7 +4,8 @@
  */
 package javarominoes.model.music.song;
 
-import javarominoes.model.synth.Track;
+import chiptunesynth.ChiptuneSong;
+import chiptunesynth.Track;
 
 /**
  * Generated from Flashman.mid (Mega Man 2, by Takashi Tateishi) MIDI arranged
@@ -21,6 +22,11 @@ public class FlashmanSong implements ChiptuneSong {
   @Override
   public Track getLead() {
     Track t = new Track().withDefaults(LEAD_VOL, LEAD_DUTY);
+    // Flashman's drums already swing (4-voice kit + humanized micro-timing);
+    // the lead was the one flat voice. Its phrases land on sustained targets
+    // (E4/H, D5/W-2, CS5/H, C5/H) — give those the singing wobble while the
+    // sixteenth-and-eighth filigree stays clean under the 12-frame delay.
+    t.withVibrato(0.3, 5.5, 12);
     t.addNotes(
             R, H + E, E3, Q, G3, S, R, S, B3, S, R, S,
             D4, DE, CS4, DE, A3, E, C4, DE, B3, DE, G3, E,

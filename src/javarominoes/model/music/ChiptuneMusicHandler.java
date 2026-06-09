@@ -4,8 +4,8 @@
  */
 package javarominoes.model.music;
 
-import javarominoes.model.music.song.ChiptuneSong;
-import javarominoes.model.synth.ChiptuneSynth;
+import chiptunesynth.ChiptuneSong;
+import chiptunesynth.ChiptuneSynth;
 
 /**
  *
