@@ -22,7 +22,7 @@ public class BoardPanel extends JPanel
     private int currentPiece;
     private int currentRotation;
     private int posX, posY;
-    private final static Color SILHOUETTE_COLOR = new Color(255, 255, 255, 50);
+    private final Color SILHOUETTE_COLOR = new Color(255, 255, 255, 50);
     
     protected GridPanel()
     {
@@ -47,7 +47,7 @@ public class BoardPanel extends JPanel
     public Dimension getPreferredSize()
     {
       blockSize = getBlockSize();
-      return new Dimension( blockSize * Board.BOARD_WIDTH, blockSize * Board.BOARD_WIDTH );
+      return new Dimension( blockSize * Board.BOARD_WIDTH, blockSize * Board.BOARD_HEIGHT );
     }
     
     @Override
@@ -65,7 +65,7 @@ public class BoardPanel extends JPanel
         g.drawLine( 0, row * blockSize, gridWidth, row * blockSize );
       }
       
-      // draw a magenta line delineating the bottom-most row
+      // draw a white strip delineating the bottom-most row
       g.setColor( Color.WHITE );
       g.fill3DRect( 0, Board.BOARD_HEIGHT * blockSize, gridWidth, getHeight(), true );
       g.setColor( Color.DARK_GRAY );

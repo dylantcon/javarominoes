@@ -13,6 +13,7 @@ import javarominoes.model.music.MusicHandler;
 import javarominoes.view.PauseMenuPanel;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -85,7 +86,7 @@ public class Javarominoes implements ActionListener {
     javarominoes.revalidate();
     javarominoes.repaint();
     
-    gameController.gameStartLifespan();
+    gameController.startGame();
     gameController.requestFocusInWindow();
   }
 
@@ -133,7 +134,9 @@ public class Javarominoes implements ActionListener {
   }
 
   public static void main(String[] args) {
-    Javarominoes g = new Javarominoes(); // build before using
-    g.startApp();
+    SwingUtilities.invokeLater(() -> {
+      Javarominoes g = new Javarominoes(); // build before using
+      g.startApp();
+    });
   }
 }

@@ -40,7 +40,7 @@ public class InfoPanel extends JPanel implements ComponentListener {
     currentFont = FONT_BASE;
     
     incPiece = game.nextPiece;
-    incPiece = game.nextRotation;
+    incRotation = game.nextRotation;
     
     addComponentListener(InfoPanel.this);
   }
@@ -52,18 +52,18 @@ public class InfoPanel extends JPanel implements ComponentListener {
   }
 
   public int getLineClearScore(int numLines) {
-    return switch (numLines) {
-      case 1 ->
-        100;
-      case 2 ->
-        300;
-      case 3 ->
-        500;
-      case 4 ->
-        800;
-      default ->
-        0;
-    };
+    switch (numLines) {
+      case 1:
+        return 100;
+      case 2:
+        return 300;
+      case 3:
+        return 500;
+      case 4:
+        return 800;
+      default:
+        return 0;
+    }
   }
 
   public void increaseScore(int points) {

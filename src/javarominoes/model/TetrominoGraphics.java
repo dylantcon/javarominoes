@@ -40,24 +40,24 @@ public class TetrominoGraphics {
   public static class Render {
 
     public static Color getBlockColor(int num) {
-      return switch (num) {
-        case 1 ->
-          new Color(255, 223, 0);  // gold
-        case 2 ->
-          Color.RED;
-        case 3 ->
-          new Color(255, 92, 0);   // bright orange
-        case 4 ->
-          Color.CYAN;
-        case 5 ->
-          Color.GREEN;
-        case 6 ->
-          Color.MAGENTA;
-        case 7 ->
-          Color.PINK;
-        default ->
-          Color.WHITE;
-      };
+      switch (num) {
+        case 1:
+          return new Color(255, 223, 0);  // gold
+        case 2:
+          return Color.RED;
+        case 3:
+          return new Color(255, 92, 0);   // bright orange
+        case 4:
+          return Color.CYAN;
+        case 5:
+          return Color.GREEN;
+        case 6:
+          return Color.MAGENTA;
+        case 7:
+          return Color.PINK;
+        default:
+          return Color.WHITE;
+      }
     }
 
     // not paddable, only used internally by board panel. can use board color

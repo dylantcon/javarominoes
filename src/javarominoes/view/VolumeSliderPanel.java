@@ -59,7 +59,7 @@ public class VolumeSliderPanel extends JPanel implements ChangeListener {
     Hashtable<Integer, ResizableLabel> lTab;
     lTab = new Hashtable<>();
     lTab.put(min, new ResizableLabel(Integer.toString(min), JLabel.CENTER, this));
-    lTab.put((min + max) / 2, new ResizableLabel(Integer.toString(max / 2), JLabel.CENTER, this));
+    lTab.put((min + max) / 2, new ResizableLabel(Integer.toString((min + max) / 2), JLabel.CENTER, this));
     lTab.put(max, new ResizableLabel(Integer.toString(max), JLabel.CENTER, this));
     return lTab;
   }

@@ -363,8 +363,8 @@ public class Pieces {
    * **************************************************************************
    * Member fn: 'getBlockType( int pPiece, int pRotation, int pX, int pY )'
    *
-   * Return the type of a square ( 0 = no-block, 1 = normal-block, 2 =
-   * pivot-block
+   * Return the type of a square ( 0 = no-block, 1-7 = filled block, where the
+   * value is the piece type + 1 )
    *
    * Parameters:
    *
