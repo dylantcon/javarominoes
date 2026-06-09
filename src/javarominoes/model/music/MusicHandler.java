@@ -5,7 +5,7 @@
 package javarominoes.model.music;
 
 /**
- * Implemented by MidiMusicHandler and ChiptuneSynthMusicHandler
+ * Implemented by ChiptuneMusicHandler and its per-song subclasses
  *
  * @author dylan
  */
@@ -16,12 +16,13 @@ public interface MusicHandler {
   
   public static final Class<?>[] concretized = {
     KorobeinikiMusicHandler.class,
-    MidiTetrisMusicHandler.class,
     FlashmanMusicHandler.class,
     WilyMusicHandler.class,
     BloodyTearsMusicHandler.class,
     ContraJungleMusicHandler.class,
-    SurfCityMusicHandler.class
+    SurfCityMusicHandler.class,
+    HyruleTempleMusicHandler.class,
+    DuckTalesMoonMusicHandler.class
   };
 
   public void startMusic();
