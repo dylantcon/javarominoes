@@ -10,13 +10,16 @@ import java.awt.Color;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.Toolkit;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Random;
+import java.util.WeakHashMap;
 
 /**
  *
@@ -30,9 +33,18 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   private final static int DEFAULT_HZ = 60;
   private final static int SEC_TO_MSECS = 1000;
   private final static int FG_BLOCK_LIST_RESIZE_BUFFER_PX = 10; // +10 px buffer
+  private final static int REBOUND_EVERY = 70; //ms
   
   private final static float DEFAULT_COMMON_RATIO = 0.80f;
-  private final static float BASE_BLOCK_SIZE_INCHES = 0.5f;
+
+  // Pinned foreground block size in pixels. Previously derived at runtime from
+  // Toolkit.getScreenResolution() * 0.5in, which on a standard 96-DPI display
+  // yields 48px. That DPI is environment-dependent: under CheerpJ the browser
+  // reports a different screen resolution, so the parallax geometry would drift
+  // from the desktop build and break pixel-identical fidelity. Pin it instead.
+  // NOTE: if your dev machine does NOT report 96 DPI, set this to whatever
+  // (int)(Toolkit.getDefaultToolkit().getScreenResolution() * 0.5f) prints there.
+  private final static int BASE_BLOCK_SIZE_PX = 48;
   
   private final static float SCROLL_SPD_BLOCK_PER_SEC = 3.8f;
   
@@ -52,6 +64,8 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   
   private Timer redrawTimer;
   
+  private Timer boundRefresher;
+  
   private final int fgBlockSzPx;
   
   private ArrayList<Integer> fgBlockPositions;
@@ -63,6 +77,14 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   // accumulates sub-pixel movement to prevent rounding losses
   private float[] layerSubPixelAccum;
   private float fgSubPixelAccum;
+
+  // Per-tower pre-rendered bitmap cache. A tower's geometry (block size, depth
+  // shading, and contents) is fixed for its entire lifetime, so it is rasterized
+  // once on first sighting and then blitted each frame, instead of issuing a
+  // fill3DRect per filled cell every frame. Keyed by Board identity; the
+  // WeakHashMap lets recycled/off-screen towers be reclaimed automatically once
+  // they fall out of the active lists, so the cache never needs manual eviction.
+  private final Map<Board, BufferedImage> towerCache = new WeakHashMap<>();
   
   /* CONSTRUCTORS */
   
@@ -78,11 +100,13 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     addComponentListener(ParallaxScrollPanel.this);
     
     initializeRedrawTimer(refreshHz);
+    initializeBoundRefreshTimer();
     fgBlockSzPx = getBaseBlockSize();
     
     initializeForegroundPositions(640);
     setVisible(true);
     redrawTimer.start();
+    boundRefresher.start();
   }
   
   /* INITIALIZATION HELPERS */
@@ -101,10 +125,12 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       redrawTimer = new Timer(rerenderPeriod, ParallaxScrollPanel.this);
   }
   
+  private void initializeBoundRefreshTimer() {
+    boundRefresher = new Timer(REBOUND_EVERY, ParallaxScrollPanel.this);    
+  }
+  
   private int getBaseBlockSize() {
-    Toolkit toolkit = Toolkit.getDefaultToolkit();
-    
-    return (int)(toolkit.getScreenResolution() * BASE_BLOCK_SIZE_INCHES);
+    return BASE_BLOCK_SIZE_PX;
   }
   
   private void initializeForegroundPositions(int windowWidth) {
@@ -250,9 +276,14 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     g.setColor(Color.WHITE.darker());
     
     int yFgTop = getHeight() - fgBlockSzPx;
+    int panelWidth = getWidth();
     
-    for (int i = 0; i < fgBlockPositions.size(); i++)
-      g.fill3DRect(fgBlockPositions.get(i), yFgTop, fgBlockSzPx, fgBlockSzPx, true);
+    for (int i = 0; i < fgBlockPositions.size(); i++) {
+      int x = fgBlockPositions.get(i);
+      if (x + fgBlockSzPx < 0 || x > panelWidth)
+        continue; // skip foreground blocks scrolled off either edge
+      g.fill3DRect(x, yFgTop, fgBlockSzPx, fgBlockSzPx, true);
+    }
     
     g.setColor(previousColor);
   }
@@ -262,6 +293,7 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       return;
 
     int panelHeight = getHeight();
+    int panelWidth = getWidth();
 
     // paint from back to front (highest layer index = furthest back)
     for (int layer = jaggedBackingsArray.size() - 1; layer >= 0; layer--) {
@@ -274,15 +306,44 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       for (int t = 0; t < towers.size(); t++) {
         Board tower = towers.get(t);
         int xPos = positions.get(t);
+        int towerWidthPx = tower.getWidth() * blockSizePx;
+
+        // viewport cull: skip towers entirely off either horizontal edge. The
+        // recycler intentionally keeps off-screen towers queued in the buffer,
+        // so this skips real per-frame work, not just rare edge cases.
+        if (xPos + towerWidthPx < 0 || xPos > panelWidth)
+          continue;
+
         int towerHeightPx = tower.getHeight() * blockSizePx;
-        
+
         // align tower bottom to half-block above panel bottom (below foreground)
         int yPos = panelHeight - (fgBlockSzPx / 2) - towerHeightPx;
-        
-        TetrominoGraphics.offsetNextRender().xBy(xPos).yBy(yPos);
-        TetrominoGraphics.Render.drawTower(g, tower, blockSizePx, depthFactor);
+
+        // blit the tower's cached sprite (rasterized once on first sighting)
+        // rather than re-filling every cell every frame.
+        BufferedImage sprite = towerCache.get(tower);
+        if (sprite == null) {
+          sprite = rasterizeTower(tower, blockSizePx, depthFactor);
+          towerCache.put(tower, sprite);
+        }
+        g.drawImage(sprite, xPos, yPos, null);
       }
     }
+  }
+
+  // Rasterize a tower to a transparent ARGB sprite exactly once. Depth shading is
+  // baked in, and empty (gap) cells stay transparent so farther layers show
+  // through. Reuses the existing drawTower path at a zero offset so tile
+  // rendering stays a single source of truth.
+  private BufferedImage rasterizeTower(Board tower, int blockSizePx, float depthFactor) {
+    int w = Math.max(1, tower.getWidth() * blockSizePx);
+    int h = Math.max(1, tower.getHeight() * blockSizePx);
+    BufferedImage sprite = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+    Graphics2D ig = sprite.createGraphics();
+    TetrominoGraphics.offsetNextRender().xBy(0).yBy(0);
+    TetrominoGraphics.Render.drawTower(ig, tower, blockSizePx, depthFactor);
+    ig.dispose();
+    return sprite;
   }
 
   /* BLOCK GEOMETRY TRANSFORMATION HELPERS */
@@ -308,9 +369,9 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
 
       /* if first foreground block scrolled fully out of view, remove it, append
           new position exactly one block size higher than the old last index val */
-      if (fgBlockPositions.getFirst() <= -fgBlockSzPx) {
-        fgBlockPositions.removeFirst();
-        fgBlockPositions.add(fgBlockPositions.getLast() + fgBlockSzPx);
+      if (fgBlockPositions.get(0) <= -fgBlockSzPx) {
+        fgBlockPositions.remove(0);
+        fgBlockPositions.add(fgBlockPositions.get(fgBlockPositions.size() - 1) + fgBlockSzPx);
       }
   }
 
@@ -342,17 +403,17 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
 
       // if first tower scrolled fully out of view, recycle it to the end
       if (!towers.isEmpty() && !positions.isEmpty()) {
-        Board firstTower = towers.getFirst();
+        Board firstTower = towers.get(0);
         int firstTowerWidth = firstTower.getWidth() * blockSizePx;
 
-        if (positions.getFirst() <= -firstTowerWidth) {
+        if (positions.get(0) <= -firstTowerWidth) {
           // remove from front
-          towers.removeFirst();
-          positions.removeFirst();
+          towers.remove(0);
+          positions.remove(0);
 
           // generate new tower and add to end
-          int lastPos = positions.isEmpty() ? 0 : positions.getLast();
-          int lastTowerWidth = towers.isEmpty() ? 0 : towers.getLast().getWidth() * blockSizePx;
+          int lastPos = positions.isEmpty() ? 0 : positions.get(positions.size() - 1);
+          int lastTowerWidth = towers.isEmpty() ? 0 : towers.get(towers.size() - 1).getWidth() * blockSizePx;
 
           Random rand = new Random();
 
@@ -385,7 +446,7 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       return;
     }
     
-    int fgProjectionX = fgBlockPositions.getLast() + fgBlockSzPx;
+    int fgProjectionX = fgBlockPositions.get(fgBlockPositions.size() - 1) + fgBlockSzPx;
     int fgNeededWidth = getWidth() + fgBlockSzPx + FG_BLOCK_LIST_RESIZE_BUFFER_PX;
     int fgDelta = fgNeededWidth - fgProjectionX;
     int blockDelta = fgDelta / fgBlockSzPx;
@@ -395,12 +456,12 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     
     if (blockDelta > 0) { // fg delta will be positive
       for (int i = 0; i < blockDelta; i++) {
-        fgBlockPositions.add(fgBlockPositions.getLast() + (fgBlockSzPx));
+        fgBlockPositions.add(fgBlockPositions.get(fgBlockPositions.size() - 1) + (fgBlockSzPx));
       }
     }
     else {
       for (int i = 0; i < -blockDelta; i++) {
-        fgBlockPositions.removeLast();
+        fgBlockPositions.remove(fgBlockPositions.size() - 1);
       }
     }
   }
@@ -425,8 +486,8 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       // calculate rightmost edge
       int rightEdge = 0;
       if (!towers.isEmpty() && !positions.isEmpty()) {
-        int lastPos = positions.getLast();
-        int lastWidth = towers.getLast().getWidth() * blockSizePx;
+        int lastPos = positions.get(positions.size() - 1);
+        int lastWidth = towers.get(towers.size() - 1).getWidth() * blockSizePx;
         rightEdge = lastPos + lastWidth;
       }
 
@@ -477,8 +538,11 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     if (evt.getSource() == redrawTimer) {
       updateForegroundPositions();
       updateBackgroundPositions();
-      repaint();
     }
+    if (evt.getSource() == boundRefresher) {
+      refreshPanelBounds();
+    }
+    repaint();
   }
   
   @Override
@@ -486,7 +550,13 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
 
     super.paintComponent(g);
 
-    if (!initialized) {
+    // Build the size-dependent geometry on the first paint that has a real size,
+    // so the very first visible frame already shows the towers (no blank-then-
+    // pop). paint only runs once the component is realized and laid out, so the
+    // size here is trustworthy — unlike a launch-time timer tick.
+    ensureLayersInitialized();
+
+    if (!initialized && getWidth() > 0) {
       lastPanelWidth = getWidth();
       updateForegroundPositions();
       initialized = true;
@@ -497,26 +567,54 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     paintForeground(g);
   }
 
-  @Override
-  public void componentResized(ComponentEvent e) {
-    
+  /**
+   * Build the parallax layers the first time a real (laid-out) size is known.
+   * Idempotent and cheap to re-call: it no-ops once the towers exist, and bails
+   * while the panel is still reported at a negligible 0x0 size (which happens
+   * briefly at launch before the layout manager sizes the panel).
+   *
+   * Initialization is keyed on "do the layers exist yet?" — NOT on catching a
+   * width-change event. Keying it on a width delta is what made launch a race:
+   * a first paint could pre-set lastPanelWidth to the real width, so the delta
+   * never tripped and the towers stayed unbuilt until a manual window resize.
+   */
+  private void ensureLayersInitialized() {
+    if (jaggedBackingsArray != null)
+      return;                                  // already built
+
+    int w = getWidth(), h = getHeight();
+    if (w <= 0 || h <= 0)
+      return;                                  // no valid size yet; retry next tick
+
+    resizeForegroundLayer();                   // refit the 640-seeded fg list to width
+    initializeBackgroundPositions(w, h);
+    lastPanelWidth = w;
+  }
+
+  private void refreshPanelBounds() {
+    ensureLayersInitialized();                 // covers the first-valid-size build
+
     int currentPanelWidth = getWidth();
-    
-    if (currentPanelWidth != lastPanelWidth) {
+
+    // once built, react only to genuine width changes (user resized the window)
+    if (jaggedBackingsArray != null
+        && currentPanelWidth > 0
+        && currentPanelWidth != lastPanelWidth) {
       resizeForegroundLayer();
       resizeBackgroundLayers();
       lastPanelWidth = currentPanelWidth;
     }
   }
+  
+  @Override
+  public void componentResized(ComponentEvent e) { refreshPanelBounds(); }
 
   @Override
-  public void componentMoved(ComponentEvent e) {}
+  public void componentMoved(ComponentEvent e) { refreshPanelBounds(); }
 
   @Override
-  public void componentShown(ComponentEvent e) {
-  }
+  public void componentShown(ComponentEvent e) { refreshPanelBounds(); }
 
   @Override
-  public void componentHidden(ComponentEvent e) {
-  }
+  public void componentHidden(ComponentEvent e) { refreshPanelBounds(); }
 }

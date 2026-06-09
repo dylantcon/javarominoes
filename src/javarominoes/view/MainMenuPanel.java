@@ -41,7 +41,7 @@ public final class MainMenuPanel extends MenuPanel {
 
     titleLabel = new JLabel(TITLE_TEXT);
     titleLabel.setForeground(Color.WHITE);
-    titleLabel.setBackground(Color.BLACK.brighter());
+    titleLabel.setBackground(new Color(15, 0, 15));
     titleLabel.setFont(FONTBASE.deriveFont(Font.BOLD, TITLE_PT));
     titleLabel.setOpaque(true);
 
