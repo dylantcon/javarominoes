@@ -37,7 +37,7 @@ public class Javarominoes implements ActionListener {
     gameController = new GameController();
     
     // refreshrate: 75hz, layer size geometric series common ratio: 0.5
-    parallaxPanel = new ParallaxScrollPanel(75, 0.5f);
+    parallaxPanel = new ParallaxScrollPanel(60, 0.5f);
     mainMenuPanel = new MainMenuPanel();
     
     // default to custom synthesizer, starting at 0.5 volume. let app handle playback

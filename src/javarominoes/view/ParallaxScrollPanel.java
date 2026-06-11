@@ -32,8 +32,7 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   private final static int DEFAULT_BACKING_LAYER_NUM = 6;
   private final static int DEFAULT_HZ = 60;
   private final static int SEC_TO_MSECS = 1000;
-  private final static int FG_BLOCK_LIST_RESIZE_BUFFER_PX = 10; // +10 px buffer
-  private final static int REBOUND_EVERY = 70; //ms
+  private final static int FG_BLOCK_LIST_RESIZE_BUFFER_PX = 15; // +10 px buffer
   
   private final static float DEFAULT_COMMON_RATIO = 0.80f;
 
@@ -46,7 +45,7 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   // (int)(Toolkit.getDefaultToolkit().getScreenResolution() * 0.5f) prints there.
   private final static int BASE_BLOCK_SIZE_PX = 48;
   
-  private final static float SCROLL_SPD_BLOCK_PER_SEC = 3.8f;
+  private final static float SCROLL_SPD_BLOCK_PER_SEC = 2.0f;
   
   /**
    * fifteen percent of the panel's total height must be used to render a blank
@@ -63,8 +62,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   private int lastPanelWidth = -1;
   
   private Timer redrawTimer;
-  
-  private Timer boundRefresher;
   
   private final int fgBlockSzPx;
   
@@ -100,13 +97,11 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     addComponentListener(ParallaxScrollPanel.this);
     
     initializeRedrawTimer(refreshHz);
-    initializeBoundRefreshTimer();
     fgBlockSzPx = getBaseBlockSize();
     
     initializeForegroundPositions(640);
     setVisible(true);
     redrawTimer.start();
-    boundRefresher.start();
   }
   
   /* INITIALIZATION HELPERS */
@@ -123,10 +118,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     }
     else
       redrawTimer = new Timer(rerenderPeriod, ParallaxScrollPanel.this);
-  }
-  
-  private void initializeBoundRefreshTimer() {
-    boundRefresher = new Timer(REBOUND_EVERY, ParallaxScrollPanel.this);    
   }
   
   private int getBaseBlockSize() {
@@ -538,9 +529,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     if (evt.getSource() == redrawTimer) {
       updateForegroundPositions();
       updateBackgroundPositions();
-    }
-    if (evt.getSource() == boundRefresher) {
-      refreshPanelBounds();
     }
     repaint();
   }
