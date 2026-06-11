@@ -8,6 +8,7 @@ import javarominoes.model.TetrominoGraphics;
 import javarominoes.model.Board;
 import java.awt.Color;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -28,12 +29,11 @@ import java.util.WeakHashMap;
 public class ParallaxScrollPanel extends JPanel implements ActionListener, ComponentListener {
 
   /* CONSTANTS */
-  
+
   private final static int DEFAULT_BACKING_LAYER_NUM = 6;
   private final static int DEFAULT_HZ = 60;
   private final static int SEC_TO_MSECS = 1000;
-  private final static int FG_BLOCK_LIST_RESIZE_BUFFER_PX = 15; // +10 px buffer
-  
+
   private final static float DEFAULT_COMMON_RATIO = 0.80f;
 
   // Pinned foreground block size in pixels. Previously derived at runtime from
@@ -44,9 +44,9 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   // NOTE: if your dev machine does NOT report 96 DPI, set this to whatever
   // (int)(Toolkit.getDefaultToolkit().getScreenResolution() * 0.5f) prints there.
   private final static int BASE_BLOCK_SIZE_PX = 48;
-  
+
   private final static float SCROLL_SPD_BLOCK_PER_SEC = 2.0f;
-  
+
   /**
    * fifteen percent of the panel's total height must be used to render a blank
    * area at the panel's top. The y coordinate yielded from the product of the
@@ -54,26 +54,69 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
    * any backing layer regardless of count.
    */
   private final static float TOP_BLANK_AREA = 0.15f;
-  
+
+  /* ADAPTIVE FRAME GOVERNOR CONSTANTS */
+
+  // The timer delay is steered toward measuredFrameCost * COST_HEADROOM, so a
+  // fixed fraction of each period is guaranteed idle EDT time for input. 1.5
+  // targets a ~67% duty cycle.
+  private final static float COST_HEADROOM = 1.5f;
+
+  // delay is clamped to [base, base * MAX_THROTTLE_FACTOR] — at a 60 Hz base
+  // the animation never drops below 15 fps no matter how slow the host is
+  private final static int MAX_THROTTLE_FACTOR = 4;
+
+  // smoothing factor for the frame-cost EMA (~ last 30 frames dominate)
+  private final static float COST_EMA_ALPHA = 0.1f;
+
+  // re-evaluate the delay only this often, and only act on changes of at
+  // least the deadband, so the timer isn't reprogrammed over noise
+  private final static int GOVERN_EVERY_TICKS = 30;
+  private final static int GOVERN_DEADBAND_MS = 4;
+
+  // discard absurd single-frame cost samples (GC pause, tab switch, debugger)
+  private final static float MAX_COST_SAMPLE_MS = 250f;
+
+  // ceiling on per-tick simulated time. Browsers throttle timers in background
+  // tabs; without a clamp the first tick after returning would teleport the
+  // whole scene by the entire time the tab spent hidden.
+  private final static float MAX_TICK_DT_SEC = 0.1f;
+
   /* MEMBER DATA */
-  
-  private boolean initialized = false;
-  
+
   private int lastPanelWidth = -1;
-  
+
   private Timer redrawTimer;
-  
+
   private final int fgBlockSzPx;
-  
-  private ArrayList<Integer> fgBlockPositions;
-  
+
+  // Wall-clock pacing: the animation advances by measured elapsed time rather
+  // than the timer's nominal delay, so scroll speed stays correct even when
+  // the EDT cannot keep up with the configured rate (typical under CheerpJ,
+  // where every Java thread is multiplexed onto the single browser thread).
+  private long lastTickNanos = -1;
+
+  // adaptive frame governor state (see recordFrameCost / governFrameRate)
+  private final int baseDelayMs;
+  private float frameCostEmaMs = -1f;
+  private int ticksSinceGovern = 0;
+
+  // Pre-rendered repeating strip for the foreground block row. All foreground
+  // blocks are identical and evenly spaced, so the whole row is one periodic
+  // image blitted at a phase offset: a single drawImage per frame instead of
+  // one fill3DRect per block. fgScrollPx is the phase, kept in [0, blockSize).
+  private BufferedImage fgStrip;
+  private float fgScrollPx = 0f;
+
+  // single shared RNG; tower recycling previously allocated one per recycle
+  private final Random rand = new Random();
+
   private ArrayList<ArrayList<Board>> jaggedBackingsArray;
 
   private ArrayList<ArrayList<Integer>> jaggedBackingsPositionsArray;
 
   // accumulates sub-pixel movement to prevent rounding losses
   private float[] layerSubPixelAccum;
-  private float fgSubPixelAccum;
 
   // Per-tower pre-rendered bitmap cache. A tower's geometry (block size, depth
   // shading, and contents) is fixed for its entire lifetime, so it is rasterized
@@ -82,9 +125,9 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   // WeakHashMap lets recycled/off-screen towers be reclaimed automatically once
   // they fall out of the active lists, so the cache never needs manual eviction.
   private final Map<Board, BufferedImage> towerCache = new WeakHashMap<>();
-  
+
   /* CONSTRUCTORS */
-  
+
  /**
   * Default constructor for ParallaxScrollPanel
   * @param refreshHz The refresh rate of the parallax scroll in Hertz.
@@ -92,58 +135,31 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   * each adjacent parallax layer. For 0.8f and a base = 50 PX, backing1 = 40 PX
   */
   public ParallaxScrollPanel(int refreshHz, float commonRatio) {
-    
+
     setBackground(Color.BLACK);
     addComponentListener(ParallaxScrollPanel.this);
-    
-    initializeRedrawTimer(refreshHz);
+
+    if (refreshHz <= 0)
+      refreshHz = DEFAULT_HZ;
+    baseDelayMs = SEC_TO_MSECS / refreshHz;
+    redrawTimer = new Timer(baseDelayMs, ParallaxScrollPanel.this);
+
     fgBlockSzPx = getBaseBlockSize();
-    
-    initializeForegroundPositions(640);
+
     setVisible(true);
     redrawTimer.start();
   }
-  
+
   /* INITIALIZATION HELPERS */
-  
-  private void initializeRedrawTimer(int refreshHz) {
-    if (refreshHz <= 0)
-      refreshHz = DEFAULT_HZ;
-    
-    int rerenderPeriod = SEC_TO_MSECS / refreshHz;
-    
-    if (redrawTimer != null && redrawTimer.isRunning()) {
-      redrawTimer.stop();
-      redrawTimer.setDelay(rerenderPeriod);
-    }
-    else
-      redrawTimer = new Timer(rerenderPeriod, ParallaxScrollPanel.this);
-  }
-  
+
   private int getBaseBlockSize() {
     return BASE_BLOCK_SIZE_PX;
   }
-  
-  private void initializeForegroundPositions(int windowWidth) {
-    int listSize = windowWidth / fgBlockSzPx + 1; // one more for scrolling
-    int offset = fgBlockSzPx / 2;
-    fgBlockPositions = new ArrayList<>(listSize);
-    
-    if (listSize <= 0)
-      return;
-    
-    // set up all blocks. scrolls R to L
-    for (int blockNo = 0; blockNo < listSize; blockNo++) {
-      fgBlockPositions.add(blockNo, (blockNo * fgBlockSzPx) - offset);
-    }
-  }
-  
+
   private void initializeBackgroundPositions(int windowWidth, int windowHeight) {
     jaggedBackingsArray = new ArrayList<>(DEFAULT_BACKING_LAYER_NUM);
     jaggedBackingsPositionsArray = new ArrayList<>(DEFAULT_BACKING_LAYER_NUM);
     layerSubPixelAccum = new float[DEFAULT_BACKING_LAYER_NUM];
-
-    Random rand = new Random();
 
     for (int layer = 0; layer < DEFAULT_BACKING_LAYER_NUM; layer++) {
       int blockSizePx = getBackingLayerBlockSize(layer);
@@ -255,28 +271,36 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     }
     return rand.nextInt(7);
   }
-  
+
   /* RENDERING HELPERS */
-  
+
   public void paintForeground(Graphics g) {
-    
-    if (fgBlockPositions == null)
+    ensureForegroundStrip();
+
+    // the row is periodic with period fgBlockSzPx, so blitting the strip at
+    // the negated phase offset reproduces every block in one call
+    g.drawImage(fgStrip, -((int) fgScrollPx), getHeight() - fgBlockSzPx, null);
+  }
+
+  // (Re)build the foreground strip if it has never been built or the panel
+  // has grown past its width. A strip left over from a wider panel is kept:
+  // drawing it is clipped to the panel anyway, and rebuilding on every
+  // resize event would churn images during an interactive window drag.
+  private void ensureForegroundStrip() {
+    int neededWidth = getWidth() + fgBlockSzPx; // one spare block for the phase shift
+    if (fgStrip != null && fgStrip.getWidth() >= neededWidth)
       return;
-    
-    Color previousColor = g.getColor();
-    g.setColor(Color.WHITE.darker());
-    
-    int yFgTop = getHeight() - fgBlockSzPx;
-    int panelWidth = getWidth();
-    
-    for (int i = 0; i < fgBlockPositions.size(); i++) {
-      int x = fgBlockPositions.get(i);
-      if (x + fgBlockSzPx < 0 || x > panelWidth)
-        continue; // skip foreground blocks scrolled off either edge
-      g.fill3DRect(x, yFgTop, fgBlockSzPx, fgBlockSzPx, true);
+
+    int blocks = neededWidth / fgBlockSzPx + 1;
+    BufferedImage strip =
+        new BufferedImage(blocks * fgBlockSzPx, fgBlockSzPx, BufferedImage.TYPE_INT_RGB);
+    Graphics2D sg = strip.createGraphics();
+    sg.setColor(Color.WHITE.darker());
+    for (int b = 0; b < blocks; b++) {
+      sg.fill3DRect(b * fgBlockSzPx, 0, fgBlockSzPx, fgBlockSzPx, true);
     }
-    
-    g.setColor(previousColor);
+    sg.dispose();
+    fgStrip = strip;
   }
 
   public void paintBackground(Graphics g) {
@@ -338,39 +362,28 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
   }
 
   /* BLOCK GEOMETRY TRANSFORMATION HELPERS */
-  
-  // this should only be called in actionPerformed or a delegate of actionPerformed
-  private void updateForegroundPositions() {
-    if (fgBlockPositions == null)
-        return;
 
-      float blocksMoved = getPeriod() * (SCROLL_SPD_BLOCK_PER_SEC / SEC_TO_MSECS);
+  // Advance the foreground phase by elapsed wall time. Returns the top y of
+  // the screen band this changed, or Integer.MAX_VALUE if the phase did not
+  // cross a whole pixel (nothing visible moved).
+  private int updateForegroundScroll(float dtSec) {
+    int prevOffsetPx = (int) fgScrollPx;
+    fgScrollPx = (fgScrollPx + dtSec * SCROLL_SPD_BLOCK_PER_SEC * fgBlockSzPx) % fgBlockSzPx;
 
-      // accumulate sub-pixel movement
-      fgSubPixelAccum += blocksMoved * fgBlockSzPx;
-      int pixelsMoved = (int) fgSubPixelAccum;
-      fgSubPixelAccum -= pixelsMoved;
-
-      if (pixelsMoved == 0)
-        return;
-
-      for (int i = 0; i < fgBlockPositions.size(); i++) {
-        fgBlockPositions.set(i, fgBlockPositions.get(i) - pixelsMoved);
-      }
-
-      /* if first foreground block scrolled fully out of view, remove it, append
-          new position exactly one block size higher than the old last index val */
-      if (fgBlockPositions.get(0) <= -fgBlockSzPx) {
-        fgBlockPositions.remove(0);
-        fgBlockPositions.add(fgBlockPositions.get(fgBlockPositions.size() - 1) + fgBlockSzPx);
-      }
+    if ((int) fgScrollPx == prevOffsetPx)
+      return Integer.MAX_VALUE;
+    return getHeight() - fgBlockSzPx;
   }
 
-  private void updateBackgroundPositions() {
+  // Advance every backing layer by elapsed wall time. Returns the top y of the
+  // screen band that visibly changed (bounded by the tallest tower of the
+  // highest layer that moved a whole pixel), or Integer.MAX_VALUE if none did.
+  private int updateBackgroundPositions(float dtSec) {
     if (jaggedBackingsArray == null || jaggedBackingsPositionsArray == null)
-      return;
+      return Integer.MAX_VALUE;
 
-    float blocksMoved = getPeriod() * (SCROLL_SPD_BLOCK_PER_SEC / SEC_TO_MSECS);
+    int dirtyTop = Integer.MAX_VALUE;
+    float blocksMoved = dtSec * SCROLL_SPD_BLOCK_PER_SEC;
 
     for (int layer = 0; layer < jaggedBackingsArray.size(); layer++) {
       int blockSizePx = getBackingLayerBlockSize(layer);
@@ -406,8 +419,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
           int lastPos = positions.isEmpty() ? 0 : positions.get(positions.size() - 1);
           int lastTowerWidth = towers.isEmpty() ? 0 : towers.get(towers.size() - 1).getWidth() * blockSizePx;
 
-          Random rand = new Random();
-
           // use same per-layer height calculation as init
           float layerHeightFactor = (float)(layer + 1) / DEFAULT_BACKING_LAYER_NUM;
           int availableHeight = (int)(getHeight() * (1 - TOP_BLANK_AREA) * layerHeightFactor);
@@ -427,36 +438,19 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
           positions.add(lastPos + lastTowerWidth + blockSizePx);
         }
       }
-    }
-  }
-  
-  public void resizeForegroundLayer() {
-    
-    if (fgBlockPositions == null) {
-      initializeForegroundPositions(getWidth());
-      return;
-    }
-    
-    int fgProjectionX = fgBlockPositions.get(fgBlockPositions.size() - 1) + fgBlockSzPx;
-    int fgNeededWidth = getWidth() + fgBlockSzPx + FG_BLOCK_LIST_RESIZE_BUFFER_PX;
-    int fgDelta = fgNeededWidth - fgProjectionX;
-    int blockDelta = fgDelta / fgBlockSzPx;
-    
-    if (blockDelta == 0)
-      return;
-    
-    if (blockDelta > 0) { // fg delta will be positive
-      for (int i = 0; i < blockDelta; i++) {
-        fgBlockPositions.add(fgBlockPositions.get(fgBlockPositions.size() - 1) + (fgBlockSzPx));
+
+      // the tallest live tower bounds how far up this layer's movement reaches
+      int tallestBlocks = 0;
+      for (int i = 0; i < towers.size(); i++) {
+        tallestBlocks = Math.max(tallestBlocks, towers.get(i).getHeight());
       }
+      int layerTopY = getHeight() - (fgBlockSzPx / 2) - tallestBlocks * blockSizePx;
+      dirtyTop = Math.min(dirtyTop, layerTopY);
     }
-    else {
-      for (int i = 0; i < -blockDelta; i++) {
-        fgBlockPositions.remove(fgBlockPositions.size() - 1);
-      }
-    }
+
+    return dirtyTop;
   }
-  
+
   public void resizeBackgroundLayers() {
     if (jaggedBackingsArray == null) {
       initializeBackgroundPositions(getWidth(), getHeight());
@@ -464,7 +458,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     }
 
     // add more towers if window grew wider
-    Random rand = new Random();
     int windowWidth = getWidth();
     int windowHeight = getHeight();
 
@@ -505,34 +498,126 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
       }
     }
   }
-  
+
+  /* FRAME PACING */
+
+  // Measured wall time since the previous tick, clamped so a tab-throttled or
+  // suspended interval cannot fast-forward the scene. First tick yields 0.
+  private float computeDeltaSeconds(long nowNanos) {
+    if (lastTickNanos < 0) {
+      lastTickNanos = nowNanos;
+      return 0f;
+    }
+    float dtSec = (nowNanos - lastTickNanos) / 1_000_000_000f;
+    lastTickNanos = nowNanos;
+    return Math.min(dtSec, MAX_TICK_DT_SEC);
+  }
+
+  /**
+   * Record how long the frame that began at tickStartNanos actually cost the
+   * EDT. Called from a runnable posted with invokeLater AFTER repaint(): the
+   * event queue is FIFO, so by the time the runnable runs, both the update
+   * and the paint this tick queued have completed — the elapsed time is the
+   * true end-to-end frame cost, including time spent servicing any other
+   * events that were queued in between (which is exactly the load the
+   * governor should react to).
+   */
+  private void recordFrameCost(long tickStartNanos) {
+    float costMs = (System.nanoTime() - tickStartNanos) / 1_000_000f;
+    if (costMs > MAX_COST_SAMPLE_MS)
+      return; // one-off stall (GC, tab switch): not steady-state load
+
+    frameCostEmaMs = (frameCostEmaMs < 0f)
+        ? costMs
+        : frameCostEmaMs + COST_EMA_ALPHA * (costMs - frameCostEmaMs);
+
+    if (++ticksSinceGovern >= GOVERN_EVERY_TICKS) {
+      ticksSinceGovern = 0;
+      governFrameRate();
+    }
+  }
+
+  /**
+   * Adaptive frame governor: steer the timer delay toward
+   * frameCost * COST_HEADROOM, clamped to [base, base * MAX_THROTTLE_FACTOR].
+   *
+   * On a desktop where a frame costs a few ms, the target sits below the base
+   * delay and the animation runs at the full configured rate. Under CheerpJ —
+   * where every Java thread is multiplexed onto the single browser thread —
+   * an expensive frame raises the delay until a fixed share of each period is
+   * idle, which is precisely the time the browser needs to service input.
+   * Because the cost measurement does not depend on the current delay,
+   * recovery is automatic when frames get cheap again. Movement is paced by
+   * wall time (see computeDeltaSeconds), so delay changes alter smoothness
+   * only — never scroll speed.
+   */
+  private void governFrameRate() {
+    int targetDelayMs = Math.round(frameCostEmaMs * COST_HEADROOM);
+    targetDelayMs = Math.max(baseDelayMs,
+                    Math.min(targetDelayMs, baseDelayMs * MAX_THROTTLE_FACTOR));
+
+    if (Math.abs(targetDelayMs - redrawTimer.getDelay()) < GOVERN_DEADBAND_MS)
+      return;
+
+    redrawTimer.setDelay(targetDelayMs);
+    // visible in the browser console under CheerpJ; changes are infrequent
+    System.out.println(String.format(
+        "[parallax] governor: avg frame cost %.1fms -> timer delay %dms",
+        frameCostEmaMs, targetDelayMs));
+  }
+
   /* GETTERS */
-  
+
   public Timer getRedrawTimer() {
     return redrawTimer;
   }
-  
+
+  /**
+   * @return the redraw timer's current delay in ms. Note this is the governed
+   * delay, which may be above the configured base when the frame governor has
+   * throttled the animation; it is no longer used for movement (movement is
+   * paced by measured wall time).
+   */
   public int getPeriod() {
     if (redrawTimer == null)
       return 0;
     return redrawTimer.getDelay();
   }
-  
+
   public int getBackingLayerBlockSize(int idx) {
-    
+
     return (int)Math.floor(fgBlockSzPx * Math.pow(DEFAULT_COMMON_RATIO, idx + 1));
   }
   /* OVERRIDES */
-  
+
   @Override
   public void actionPerformed(ActionEvent evt) {
-    if (evt.getSource() == redrawTimer) {
-      updateForegroundPositions();
-      updateBackgroundPositions();
+    if (evt.getSource() != redrawTimer)
+      return;
+
+    final long tickStartNanos = System.nanoTime();
+    float dtSec = computeDeltaSeconds(tickStartNanos);
+
+    int dirtyTop = Math.min(updateForegroundScroll(dtSec),
+                            updateBackgroundPositions(dtSec));
+
+    // Repaint only the horizontal band that visibly changed this tick. The
+    // panel sits under a non-opaque menu in a JLayeredPane, where dirty
+    // regions are promoted to the whole layer stack: a full-panel repaint()
+    // would force the menu's labels and buttons to repaint every tick, while
+    // the band spares everything above the layers that moved. On ticks where
+    // only the near (short) layers crossed a whole pixel, that skips most of
+    // the window.
+    if (dirtyTop < getHeight()) {
+      int bandTop = Math.max(0, dirtyTop - 2); // small safety margin
+      repaint(0, bandTop, getWidth(), getHeight() - bandTop);
     }
-    repaint();
+
+    // posted after repaint(), so it runs once this frame's paint is done and
+    // measures the frame's true EDT cost (see recordFrameCost)
+    SwingUtilities.invokeLater(() -> recordFrameCost(tickStartNanos));
   }
-  
+
   @Override
   public void paintComponent(Graphics g) {
 
@@ -543,12 +628,6 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     // pop). paint only runs once the component is realized and laid out, so the
     // size here is trustworthy — unlike a launch-time timer tick.
     ensureLayersInitialized();
-
-    if (!initialized && getWidth() > 0) {
-      lastPanelWidth = getWidth();
-      updateForegroundPositions();
-      initialized = true;
-    }
 
     // background first (behind), then foreground (in front)
     paintBackground(g);
@@ -574,9 +653,12 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     if (w <= 0 || h <= 0)
       return;                                  // no valid size yet; retry next tick
 
-    resizeForegroundLayer();                   // refit the 640-seeded fg list to width
     initializeBackgroundPositions(w, h);
     lastPanelWidth = w;
+
+    // this paint may be running under a partial (band) clip; queue one full
+    // repaint so the freshly built towers above the band become visible too
+    repaint();
   }
 
   private void refreshPanelBounds() {
@@ -588,12 +670,11 @@ public class ParallaxScrollPanel extends JPanel implements ActionListener, Compo
     if (jaggedBackingsArray != null
         && currentPanelWidth > 0
         && currentPanelWidth != lastPanelWidth) {
-      resizeForegroundLayer();
       resizeBackgroundLayers();
       lastPanelWidth = currentPanelWidth;
     }
   }
-  
+
   @Override
   public void componentResized(ComponentEvent e) { refreshPanelBounds(); }
 

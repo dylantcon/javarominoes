@@ -36,7 +36,8 @@ public class Javarominoes implements ActionListener {
 
     gameController = new GameController();
     
-    // refreshrate: 75hz, layer size geometric series common ratio: 0.5
+    // base refresh 60 Hz; the panel's adaptive governor throttles itself when
+    // the EDT can't sustain that (e.g. under CheerpJ in the browser)
     parallaxPanel = new ParallaxScrollPanel(60, 0.5f);
     mainMenuPanel = new MainMenuPanel();
     
