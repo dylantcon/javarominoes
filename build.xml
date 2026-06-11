@@ -10,6 +10,22 @@
 <project name="Javarominoes" default="default" basedir=".">
     <description>Builds, tests, and runs the project Javarominoes.</description>
     <import file="nbproject/build-impl.xml"/>
+
+    <!-- Repack the dist jar as a "fat" jar: merge in ChiptuneSynth's classes
+         so dist/Javarominoes.jar runs standalone, with no lib/ folder needed. -->
+    <target name="-post-jar">
+        <jar destfile="${dist.dir}/fat.jar.tmp" duplicate="preserve">
+            <zipfileset src="${dist.jar}" excludes="META-INF/MANIFEST.MF"/>
+            <zipfileset src="${reference.ChiptuneSynth.jar}" excludes="META-INF/**"/>
+            <manifest>
+                <attribute name="Main-Class" value="${main.class}"/>
+            </manifest>
+        </jar>
+        <move file="${dist.dir}/fat.jar.tmp" tofile="${dist.jar}"/>
+        <delete dir="${dist.dir}/lib"/>
+        <echo message="Fat JAR built: ${dist.jar} (includes ChiptuneSynth)"/>
+    </target>
+
     <!--
 
     There exist several targets which are by default empty and which can be 
