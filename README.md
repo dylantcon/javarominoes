@@ -12,6 +12,8 @@ Javarominoes is a Java-based tetris-inspired game that I wrote for fun. I have f
 
 For a list of all implemented features, see the section below. The game was built entirely in Java, relying only on core JRE features, and packaged into a runnable JAR file. As such, if you have the JRE installed (https://www.oracle.com/java/technologies/javase/jdk22-archive-downloads.html), you should be able to simply double-click the `Javarominoes.jar` file and it will fire up.
 
+![Title-Screen](https://javalab.dconn.dev/apps/javarominoes/thumbnail.png)
+
 ## Features
 
 **Fair Piece Generation**: I've implemented the so-called "bag" method for random piece generation, ensuring a balanced distribution of all tetrominoes throughout gameplay. An array holds all 7 of the pieces, which I shuffle using the **Fisher-Yates algorithm**. The program will iterate through the list after every new piece is generated, and after we reach the end, the array is repopulated and reshuffled. Thus, the longest possible 'drought' between identical pieces is *13*. This fixes an issue present in the original Tetris title for the NES, which uses a [linear feedback shift register](https://arxiv.org/html/2404.12011v1) to generate random pieces without a piece buffer array. The naive LFSR approach might cause a scenario in which the user does not receive an 'I' piece for 20 or more piece generations, effectively ending their game and causing understandable frustration.
