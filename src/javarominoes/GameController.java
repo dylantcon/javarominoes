@@ -13,6 +13,7 @@ import java.awt.*;
 import javax.swing.Timer;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import javarominoes.model.GridZone;
 import javarominoes.model.gfx.TetrominoGraphics;
 import javarominoes.model.TetrominoState;
@@ -358,17 +359,28 @@ public class GameController extends JLayeredPane implements ActionListener {
       boardPanel.bankRenderPhase(RenderPhase.Factory.fixedBlocksRenderPhase(state));
       boardPanel.bankRenderPhase(RenderPhase.Factory.piecePlacementRenderPhase(state, t));
 
-      Pair<Integer, Integer> tb = state.getBoardState().getRangeToClear();
+      // one run per contiguous band of filled rows; a gapped clear must not
+      // collapse into a single range, or the unfilled rows between the bands
+      // would be deleted along with them
+      ArrayList<Pair<Integer, Integer>> runs = state.getBoardState().getRangesToClear();
 
-      if (tb != null) {
-        int rowsAffected = Board.dist(tb);
-        infoPanel.increaseScore(infoPanel.getLineClearScore(rowsAffected));
-        boardPanel.bankRenderPhase(RenderPhase.Factory.lineClearRenderPhase(state, tb.f, tb.s));
+      if (!runs.isEmpty()) {
+        int rowsCleared = 0;
+        for (Pair<Integer, Integer> run : runs) {
+          rowsCleared += Board.dist(run);
+          boardPanel.bankRenderPhase(RenderPhase.Factory.lineClearRenderPhase(state, run.f, run.s));
+        }
+        infoPanel.increaseScore(infoPanel.getLineClearScore(rowsCleared));
         // dispatch BEFORE deleting so the landing bakes and the flash starts
         // while the static layer still shows the full rows; the shifted rows
         // rebake when the animation finishes
         boardPanel.dispatchGridPanelRerender();
-        state.getBoardState().deleteLines(tb);
+
+        // deleting a run only shifts the rows above it, so every run below
+        // the one being deleted keeps its indices. descend in order
+        for (Pair<Integer, Integer> run : runs) {
+          state.getBoardState().deleteLines(run);
+        }
       }
 
       feedPieces(); // inTetromino=nextTetromino, nextTetromino=yates
@@ -378,28 +390,42 @@ public class GameController extends JLayeredPane implements ActionListener {
   }
 
   private void checkTetrominoTranslationState(TetrominoState t) {
-    TetrominoState collisionBackup = t;
-    if (stateCollides(state.active()) == true) {
-      if (TetrominoState.Factory.copy(state.active()).deltaState(t).isRotationDelta()) {
-        if (!stateCollides(TetrominoState.Factory.kickLeftCopy(state.active()))) {
-          collisionBackup = state.active();
-          collisionBackup.decX();
-        } else if (!stateCollides(TetrominoState.Factory.kickRightCopy(state.active()))) {
-          collisionBackup = state.active();
-          collisionBackup.incX();
-        }
-      }
-      if (collisionBackup == t) {
-        state.setActiveState(collisionBackup);
-        return;
-      }
+    if (stateCollides(state.active()) && !attemptWallKick(t)) {
+      state.setActiveState(t); // no way through. revert to the last legal state
+      return;
     }
 
-    // succeeded, still midair, calculate dirtied region
-    TetrominoGraphics.bankLastTetrominoFootprint(collisionBackup);
+    // succeeded, still midair, calculate dirtied region. the footprint is
+    // always banked against t, the last legal state: a kicked piece has left
+    // its old cells behind, and only a nonzero delta will dirty them
+    TetrominoGraphics.bankLastTetrominoFootprint(t);
     boardPanel.bankRenderPhase(RenderPhase.Factory.airbornePieceRenderPhase(state));
     boardPanel.bankRenderPhase(RenderPhase.Factory.silhouettePieceRenderPhase(state));
     boardPanel.dispatchGridPanelRerender();
+  }
+
+  /**
+   * Rotations alone may kick off of a wall. A rotation which collides retries
+   * itself one column to the left, and then one column to the right, before it
+   * is abandoned. Translations are given no such reprieve.
+   *
+   * @param t the last legal state, prior to the attempted translation
+   * @return whether a kick resolved the collision. the active state is mutated
+   * into the kicked position when it did
+   */
+  private boolean attemptWallKick(TetrominoState t) {
+    if (!TetrominoState.Factory.copy(state.active()).deltaState(t).isRotationDelta()) {
+      return false;
+    }
+    if (!stateCollides(TetrominoState.Factory.kickLeftCopy(state.active()))) {
+      state.active().decX();
+      return true;
+    }
+    if (!stateCollides(TetrominoState.Factory.kickRightCopy(state.active()))) {
+      state.active().incX();
+      return true;
+    }
+    return false;
   }
 
   public void movePieceDown() {

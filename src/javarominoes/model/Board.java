@@ -4,6 +4,7 @@
  */
 package javarominoes.model;
 
+import java.util.ArrayList;
 import javarominoes.model.util.Pair;
 
 /**
@@ -93,32 +94,59 @@ public class Board {
   // delete a line of the board by moving all of the lines down
   public void deleteLine(int pY) {
     // moves all the upper lines one row down
-    for (int r = pY; r > 1; --r) {
+    for (int r = pY; r > 0; --r) {
       for (int c = 0; c < width; ++c) {
         mBoard[r][c] = mBoard[r - 1][c];// "i am equal to position above me"
       }
     }
+    // nothing sits above row 0, so it is vacated rather than inherited
+    for (int c = 0; c < width; ++c) {
+      mBoard[0][c] = POS_FREE;
+    }
   }
 
-  public Pair<Integer, Integer> getRangeToClear() {
-    int[] buffer = new int[height];
-    int numClearable = 0;
-    for (int r = 0; r < height; ++r) {
-      int c = 0;
-      while (c < width) {
-        // if current square on current line has a non-filled element, break
-        if (mBoard[r][c] == POS_FREE) {
-          break;
-        }
-        ++c;// otherwise, increment i to continue checking
-      }
-      // if i has iterated to boardWidth, all squares on line are filled
-      if (c == width) {
-        buffer[numClearable++] = r;
+  public boolean isFullLine(int r) {
+    for (int c = 0; c < width; ++c) {
+      // if current square on current line has a non-filled element, break
+      if (mBoard[r][c] == POS_FREE) {
+        return false;
       }
     }
-    return numClearable != 0 ? new Pair<>(buffer[0], buffer[numClearable - 1]) : null;
+    return true;
+  }
 
+  /**
+   * Groups the filled rows into maximal contiguous runs, each expressed as an
+   * inclusive top-bottom Pair.
+   *
+   * <p>
+   * A single Pair spanning the first and last filled row cannot describe a
+   * gapped clear. A vertical 'I' may fill rows 16 and 18 while leaving a hole
+   * in 17, and the range (16, 18) would delete that untouched row along with
+   * them. One Pair per run keeps every reported row genuinely full.</p>
+   *
+   * @author dylan
+   * @return the filled runs, ordered from the top of the board downward, empty
+   * when no row is filled
+   */
+  public ArrayList<Pair<Integer, Integer>> getRangesToClear() {
+    ArrayList<Pair<Integer, Integer>> runs = new ArrayList<>();
+    int top = -1;
+
+    for (int r = 0; r < height; ++r) {
+      if (isFullLine(r)) {
+        if (top < 0) {
+          top = r; // a run opens on the first filled row after a gap
+        }
+      } else if (top >= 0) {
+        runs.add(new Pair<>(top, r - 1)); // and closes on the row that breaks it
+        top = -1;
+      }
+    }
+    if (top >= 0) {
+      runs.add(new Pair<>(top, height - 1)); // a run may abut the floor
+    }
+    return runs;
   }
 
   public static int dist(Pair<Integer, Integer> topBtm) {
@@ -128,14 +156,14 @@ public class Board {
   // delete all lines in the inclusive range specified, return lines deleted
   public int deleteLines(Pair<Integer, Integer> topBtm) {
     if (topBtm.f > topBtm.s) return 0;
-    if (topBtm.f < 0 && topBtm.f > Board.HEIGHT) return 0;
-    if (topBtm.s < 0 && topBtm.s > Board.HEIGHT) return 0;
+    if (topBtm.f < 0 || topBtm.f >= height) return 0;
+    if (topBtm.s < 0 || topBtm.s >= height) return 0;
 
     // inclusive range, so if top = btm still delete!
     for (int ln = topBtm.f; ln <= topBtm.s; ++ln) {
       deleteLine(ln);
     }
-    return dist(topBtm) + 1;
+    return dist(topBtm);
   }
 
   public int getBlockType(int x2, int y2) {

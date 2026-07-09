@@ -10,7 +10,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +49,9 @@ public class TetrisKeyListener implements ActionListener, KeyListener {
   public static final Map<String, String> CTRL_MAP;
 
   static {
-    Map<String, String> map = new HashMap<>();
+    // insertion-ordered: the legend InfoPanel draws from this map reads top to
+    // bottom in the order written below, rather than in hash order
+    Map<String, String> map = new LinkedHashMap<>();
     map.put("Q",   "Rotate CCW");
     map.put("E",   "Rotate CW");
     map.put("A",   "Move left");

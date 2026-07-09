@@ -26,7 +26,7 @@ public class TetrominoGraphics {
   private final static Color BRIGHT_ORANGE = new Color(255, 92, 0);
   private final static Color FOOTPRINT_1 = new Color(0x2B00B5);
   private final static Color FOOTPRINT_2 = new Color(0xC0FFEE);
-  private final static boolean DEBUG_TETROMINO_GRAPHICS = true;
+  private final static boolean DEBUG_TETROMINO_GRAPHICS = false;
 
   /**
    * first item: in-air tetromino GridZone formed from relative union of last

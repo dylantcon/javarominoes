@@ -262,25 +262,43 @@ public class BoardPanel extends JPanel implements ComponentListener {
   private class PaddingPanel extends JPanel {
 
     protected GridPanel gP;
-    GradientPaint mgGrad = new GradientPaint(0, 0,
-            new Color(17, 66, 50, 0),
-            this.getWidth(),
-            this.getHeight(),
-            new Color(17, 66, 50, 200)); // moss green
+
+    private GradientPaint mgGrad;
+    private int gradW = -1, gradH = -1;
 
     protected PaddingPanel(GridPanel g) {
       gP = g;
     }
 
+    /**
+     * The gradient spans the panel, so its endpoints are only knowable once
+     * the panel has been laid out. Cached until the panel is resized, rather
+     * than rebuilt on every paint.
+     */
+    private GradientPaint gradientFor(int w, int h) {
+      if (mgGrad == null || gradW != w || gradH != h) {
+        mgGrad = new GradientPaint(0, 0, new Color(17, 66, 50, 0),
+                w, h, new Color(17, 66, 50, 200)); // moss green
+        gradW = w;
+        gradH = h;
+      }
+      return mgGrad;
+    }
+
     @Override
     public void paintComponent(Graphics g) {
+      int w = getWidth();
+      int h = getHeight();
+      if (w <= 0 || h <= 0) {
+        return; // not laid out yet, and a degenerate gradient has no endpoints
+      }
       g.setColor(Color.YELLOW);
-      g.fill3DRect(0, 0, this.getWidth(), this.getHeight(), true);
+      g.fill3DRect(0, 0, w, h, true);
 
       // apply a gradient on the borders, use graphics2d
       Graphics2D g2d = (Graphics2D) g;
-      g2d.setPaint(mgGrad);
-      g2d.fillRect(0, 0, this.getWidth(), this.getHeight());
+      g2d.setPaint(gradientFor(w, h));
+      g2d.fillRect(0, 0, w, h);
     }
 
     @Override
