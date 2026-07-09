@@ -99,6 +99,10 @@ public class GameController extends JLayeredPane implements ActionListener {
     return state.active();
   }
 
+  public boolean isGameOver() {
+    return gameOver;
+  }
+
   public PauseMenuPanel getPauseMenuPanel() {
     return pauseMenuPanel != null ? pauseMenuPanel : null;
   }
@@ -352,8 +356,12 @@ public class GameController extends JLayeredPane implements ActionListener {
   }
 
   private void processPiecePlacement(TetrominoState t) {
+    // ask before storing: storePiece discards the blocks above the ceiling,
+    // and a board which has already swallowed them cannot be asked afterward
+    boolean lockedOut = state.getBoardState().exceedsCeiling(t);
     state.getBoardState().storePiece(t);
-    if (state.getBoardState().isGameOver() == false) {
+
+    if (lockedOut == false) {
       // bake the landed piece into the static layer and pulse it
       TetrominoGraphics.markLandingDirtyZone(t);
       boardPanel.bankRenderPhase(RenderPhase.Factory.fixedBlocksRenderPhase(state));

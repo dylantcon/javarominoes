@@ -12,7 +12,7 @@ import javarominoes.model.Pieces;
 import javarominoes.model.TetrominoState;
 
 /**
- * Short white pulse over the cells of a just-landed piece, fading out over the
+ * Short pulse over the cells of a just-landed piece, fading out over the
  * animation's duration. Holds its own snapshot of the landed state because the
  * game state's active piece is replaced by the next spawn immediately after
  * placement.
@@ -23,12 +23,34 @@ public class PiecePlacementRenderPhase extends AbstractAnimatedRenderPhase {
 
   private static final int DURATION_MS = 100;
   private static final int PEAK_ALPHA = 80;
+  private static final int WHITE_CHANNEL = 0xFF;
 
   private final TetrominoState landed;
+
+  /**
+   * The pulse is the channel-wise mean of white and the landed piece's own
+   * colour, so that it reads as that piece brightening rather than as a white
+   * flash which happens to sit on top of it.
+   */
+  private final Color flash;
 
   public PiecePlacementRenderPhase(GameState gs, TetrominoState landed) {
     super(gs, DURATION_MS);
     this.landed = landed;
+    this.flash = landed == null ? Color.WHITE
+            : meanWithWhite(TetrominoGraphics.Render.getBlockColor(landed.tyRot.f + 1));
+  }
+
+  /**
+   * @param c a piece colour, drawn from the 1-indexed table in
+   * {@link TetrominoGraphics.Render#getBlockColor(int)}. A TetrominoState's
+   * type is 0-indexed, hence the increment at the call site
+   * @return the mean of that colour and white, opaque
+   */
+  private static Color meanWithWhite(Color c) {
+    return new Color((c.getRed() + WHITE_CHANNEL) / 2,
+            (c.getGreen() + WHITE_CHANNEL) / 2,
+            (c.getBlue() + WHITE_CHANNEL) / 2);
   }
 
   @Override
@@ -37,7 +59,8 @@ public class PiecePlacementRenderPhase extends AbstractAnimatedRenderPhase {
       return;
     }
     float fade = 1f - progress();
-    graphics.setColor(new Color(255, 255, 255, (int) (PEAK_ALPHA * fade)));
+    graphics.setColor(new Color(flash.getRed(), flash.getGreen(), flash.getBlue(),
+            (int) (PEAK_ALPHA * fade)));
 
     for (int x = 0; x < Board.PIECE_BLOCKS; ++x) {
       for (int y = 0; y < Board.PIECE_BLOCKS; ++y) {

@@ -80,12 +80,36 @@ public class Board {
     storePiece(t.xy.f, t.xy.s, t.tyRot.f, t.tyRot.s);
   }
 
-  // check to see if the game has ended (a square attained top position)
-  public boolean isGameOver() {
-    // if any square on the top line has a square, you lose ( pos [i][0] )
-    for (int c = 0; c < WIDTH; ++c) {
-      if (mBoard[0][c] != POS_FREE) {
-        return true;
+  /**
+   * Whether a tetromino has come to rest with any of its four blocks above the
+   * ceiling, which is to say above row 0, the topmost row of the field.
+   *
+   * <p>
+   * This is the original title's losing condition. A piece which fits wholly
+   * within row 0 is a legal placement, and it is only the piece which cannot
+   * fit beneath the ceiling that ends the game. The predicate this replaces
+   * asked instead whether any block occupied row 0 at all, which killed the
+   * player one full row early, and killed him outright for laying a flat 'I'
+   * into the topmost row.</p>
+   *
+   * <p>
+   * The question must be put to the piece rather than to the board. Blocks
+   * above the ceiling have negative board coordinates: isPossibleMovement
+   * tolerates them, so that a piece may spawn above the field and descend into
+   * it, and storePiece silently discards them. Neither can report the
+   * condition once the piece has landed.</p>
+   *
+   * @author dylan
+   * @param t the tetromino which has just come to rest
+   * @return whether any of its blocks lies above row 0
+   */
+  public boolean exceedsCeiling(TetrominoState t) {
+    for (int r = 0; r < PIECE_BLOCKS; ++r) {
+      for (int c = 0; c < PIECE_BLOCKS; ++c) {
+        if (Pieces.getBlockType(t.tyRot.f, t.tyRot.s, c, r) != POS_FREE
+                && t.xy.s + r < 0) {
+          return true;
+        }
       }
     }
     return false;

@@ -117,15 +117,19 @@ public class TetrominoGraphics {
     }
 
     /**
-     * @param rp 
+     * @param rp
      */
     public static void drawRenderPhase(RenderPhase rp) {
       rp.draw();
       TetrominoGraphics.clearRenderOffsets();
     }
 
-    // not paddable, only used internally by board panel. can use board color
-    // directly (no zero-indexing)
+    /**
+     *
+     * @param g
+     * @param b
+     * @param bPx
+     */
     public static void drawStaticBoardBlocks(Graphics g, Board b, int bPx) {
       for (int column = 0; column < Board.WIDTH; ++column) {
         for (int row = 0; row < Board.HEIGHT; ++row) {
@@ -137,7 +141,13 @@ public class TetrominoGraphics {
       }
     }
 
-    // draws a variable-size board (tower) at given offset with depth shading
+    /**
+     * 
+     * @param g
+     * @param b
+     * @param bPx
+     * @param depthFactor 
+     */
     public static void drawTower(Graphics g, Board b, int bPx, float depthFactor) {
       int width = b.getWidth();
       int height = b.getHeight();
@@ -160,6 +170,12 @@ public class TetrominoGraphics {
       TetrominoGraphics.clearRenderOffsets();
     }
 
+    /**
+     * 
+     * @param color
+     * @param depthFactor
+     * @return 
+     */
     private static Color darkenForDepth(Color color, float depthFactor) {
       // depthFactor 0 = front (no darkening), 1 = far back (max darkening)
       float brightness = 1.0f - (depthFactor * 0.6f);
@@ -170,14 +186,19 @@ public class TetrominoGraphics {
       );
     }
 
-    /*
+   /**
     * gX , gY are block coordinates of the top left of the piece matrix, and it
     * is assumed that the origin of the coordinate system corresponds to 0px,0px
     * on the targeted JComponent's graphics context. Hence, targeted JComponent 
     * is effectively subdivided into contiguous squares, that may or may not be
     * part of a game board. To render a piece without the grid position offset,
     * simply pass gX and gY as zero. pc is the index of the specific piece matrix
-     */
+    * 
+     * @param g
+     * @param bPx
+     * @param ts
+     * @param override
+    */
     public static void drawPiece(Graphics g, int bPx, TetrominoState ts, Color override) {
       // must have graphics. assume parameters passed correctly
       if (g == null) {
@@ -239,6 +260,11 @@ public class TetrominoGraphics {
       TetrominoGraphics.clearRenderOffsets();
     }
 
+    /**
+     * 
+     * @param g
+     * @param bPx 
+     */
     public static void drawFootprintGridZones__Debug(Graphics g, int bPx) {
       if (!DEBUG_TETROMINO_GRAPHICS || g == null) {
         return;
@@ -250,7 +276,6 @@ public class TetrominoGraphics {
           we may confidently instantiate statically allocated local variables */
       int xPx, yPx, wPx, hPx;
       TetrominoGraphics.offsetNextRender().xBy(-1).yBy(-1);
-
 
       if (tetrominoFootprint.s != null) {
         // draw the silhouette's associated grid zone. must do geometry

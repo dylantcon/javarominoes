@@ -201,7 +201,7 @@ public class TetrisKeyListener implements ActionListener, KeyListener {
       return; // prior to game lifespan start, ignore input
     }
     // only allow pause-unpause toggle via esc if game is not over
-    if (e.getKeyCode() == KeyEvent.VK_ESCAPE && !game.getBoard().isGameOver()) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE && !game.isGameOver()) {
       game.togglePause(System.currentTimeMillis());
       return;
     }
