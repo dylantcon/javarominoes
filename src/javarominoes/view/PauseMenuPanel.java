@@ -29,6 +29,8 @@ public final class PauseMenuPanel extends MenuPanel
   private static final String RESUME_TEXT = "Resume";
   private static final String RESTART_TEXT = "Restart";
   private static final String MMENU_TEXT = "Return to Main Menu";
+
+  private static final float PAUSE_BANNER_FONT_PT = 58;
   
   // a convenience boolean
   private boolean showingPause;
@@ -43,7 +45,7 @@ public final class PauseMenuPanel extends MenuPanel
     
     pauseLabel = new JLabel(PAUSE_TEXT);
     pauseLabel.setForeground(Color.WHITE);
-    pauseLabel.setFont(FONTBASE.deriveFont(Font.BOLD, LABEL_FONT_PT));
+    pauseLabel.setFont(FONTBASE.deriveFont(Font.BOLD, PAUSE_BANNER_FONT_PT));
     
     resumeButton = buildMenuButton(RESUME_TEXT, Color.YELLOW, Color.DARK_GRAY);
     restartButton = buildMenuButton(RESTART_TEXT, Color.MAGENTA, Color.BLACK);

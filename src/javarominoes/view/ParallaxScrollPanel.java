@@ -4,7 +4,7 @@ package javarominoes.view;
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-import javarominoes.model.TetrominoGraphics;
+import javarominoes.model.gfx.TetrominoGraphics;
 import javarominoes.model.Board;
 import java.awt.Color;
 import javax.swing.JPanel;

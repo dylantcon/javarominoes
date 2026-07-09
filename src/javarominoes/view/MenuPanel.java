@@ -14,7 +14,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.lang.reflect.Constructor;
-import javarominoes.model.music.MusicHandler;
+import chiptunesynth.music.MusicHandler;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -33,10 +33,10 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   protected static final float BASE_PT = 10f;
   protected static final float LABEL_FONT_PT = 48f;
   protected static final float BUTTON_FONT_PT = 18f;
-  protected static final int BUTTON_WIDTH_PX = 280;
+  protected static final int BUTTON_WIDTH_PX = 310;
   protected static final int BUTTON_HEIGHT_PX = 60;
 
-  private static final int SOUND_BUTTON_W_PX = 150;
+  private static final int SOUND_BUTTON_W_PX = 250;
   private static final int SOUND_BUTTON_H_PX = 30;
   private static final float SOUND_BUTTON_FONT_PT = 8f;
   
@@ -48,15 +48,15 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   protected static final Insets STD_P = new Insets(10, 20, 10, 20);
 
   private static final String TYPE_TEXT = "Music";
-  private static final String STOP_TEXT = "Stop";
-  private static final String START_TEXT = "Start";
+  private static final String STOP_TEXT = "Pause";
+  private static final String START_TEXT = "Play";
 
   public static MusicHandler musicHandler;
 
   private static int hdlIdx = 0;
 
   protected final JButton swapMusicButton;
-  protected final JButton toggleMusicButton;
+  protected final JButton pausePlayMusicButton;
   protected final VolumeSliderPanel volumeSlider;
 
   protected MenuPanel() {
@@ -66,7 +66,7 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
 
     swapMusicButton = buildSoundButton(buildMusicTypeLabel(),
     Color.WHITE, Color.BLACK);
-    toggleMusicButton = buildSoundButton(buildStartStopLabel(),
+    pausePlayMusicButton = buildSoundButton(buildStartStopLabel(),
     MUSIC_MINOR_CL, MUSIC_MAJOR_CL);
 
     volumeSlider = new VolumeSliderPanel(0, 100, 50);
@@ -77,7 +77,7 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
     });
 
     swapMusicButton.addActionListener(MenuPanel.this);
-    toggleMusicButton.addActionListener(MenuPanel.this);
+    pausePlayMusicButton.addActionListener(MenuPanel.this);
   }
 
   public void setMusicHandler(MusicHandler music) {
@@ -123,7 +123,7 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
     audioPanel.setBackground(Color.CYAN);
     audioPanel.setLayout(new BoxLayout(audioPanel, BoxLayout.Y_AXIS));
     audioPanel.setBorder(BorderFactory.createTitledBorder("Audio"));
-    audioPanel.add(toggleMusicButton);
+    audioPanel.add(pausePlayMusicButton);
     audioPanel.add(swapMusicButton);
     audioPanel.add(volumeSlider);
     audioPanel.setOpaque(true);
@@ -196,17 +196,17 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
   }
 
   private void refreshStartStopText() {
-    toggleMusicButton.setText(buildStartStopLabel());
-    toggleMusicButton.repaint();
+    pausePlayMusicButton.setText(buildStartStopLabel());
+    pausePlayMusicButton.repaint();
   }
   
   private void updateMusicStartStopColorScheme() {
     if (musicHandler != null && musicHandler.doingPlayback()) {
-      toggleMusicButton.setBackground(MUSIC_MAJOR_CL);
-      toggleMusicButton.setForeground(MUSIC_MINOR_CL);
+      pausePlayMusicButton.setBackground(MUSIC_MAJOR_CL);
+      pausePlayMusicButton.setForeground(MUSIC_MINOR_CL);
     } else {
-      toggleMusicButton.setBackground(MUSIC_MINOR_CL);
-      toggleMusicButton.setForeground(MUSIC_MAJOR_CL);
+      pausePlayMusicButton.setBackground(MUSIC_MINOR_CL);
+      pausePlayMusicButton.setForeground(MUSIC_MAJOR_CL);
     }
   }
   
@@ -244,7 +244,7 @@ public abstract class MenuPanel extends JPanel implements ActionListener {
       }
       refreshMusicTypeText();
     }
-    if (evt.getSource() == toggleMusicButton) {
+    if (evt.getSource() == pausePlayMusicButton) {
       processMusicStartStopEvent();
     }
   }

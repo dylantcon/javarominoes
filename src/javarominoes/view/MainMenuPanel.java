@@ -29,8 +29,8 @@ public final class MainMenuPanel extends MenuPanel {
   private static final String PLAY_TEXT = "Play Game";
   private static final String EXIT_DESKTOP_TEXT = "Exit to Desktop";
 
-  private static final float TITLE_PT = 60f;
-  private static final float SUBTITLE_PT = 18f;
+  private static final float TITLE_PT = 67f;
+  private static final float SUBTITLE_PT = 21f;
 
   private static final Color TRANSPARENT = new Color(0, 0, 0, 0);
 

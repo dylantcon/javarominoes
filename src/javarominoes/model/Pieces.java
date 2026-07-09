@@ -4,13 +4,18 @@
  */
 package javarominoes.model;
 
+import javarominoes.model.util.Pair;
+
 /**
  *
  * @author dylan
  */
 public class Pieces {
 
-  public static int[][][][] matrix
+  public static final int N_TETROMINO = 7;
+  public static final int N_ORIENTATIONS = 4;
+
+  public static final int[][][][] MATRIX
           = {
             // 'square' piece
             {
@@ -277,7 +282,7 @@ public class Pieces {
     * represents an upward translation in the Y, or a leftward translation
     * in the X.
    */
-  public static int initPos[][][]
+  public final static int[][][] INITPOS
           = // displacement of the piece to the position where it is first drawn in the board when it is created
           {
             // 'square' piece translations
@@ -300,7 +305,7 @@ public class Pieces {
               // -(pi) or -180deg
               {2, -4},
               // -((3pi/2)) or -270deg
-              {2, -4}
+              {2, -4},
             },
             // 'L' piece translations
             {
@@ -371,15 +376,15 @@ public class Pieces {
    * >> pPiece: Piece to draw >> pRotation: 1 of the 4 possible rotations >> pX:
    * Horizontal position in blocks >> pY: Vertical position in blocks
    *
-   * @param pPiece
-   * @param pRotation
+   * @param p
+   * @param r
    * @param pX
    * @param pY
-   * @return 
-    ***************************************************************************
+   * @return
+   * **************************************************************************
    */
-  public static int getBlockType(int pPiece, int pRotation, int pX, int pY) {
-    return matrix[pPiece][pRotation][pX][pY];
+  public static int getBlockType(int p, int r, int pX, int pY) {
+    return MATRIX[p][r][pY][pX];
   }
 
   /**
@@ -394,13 +399,13 @@ public class Pieces {
    *
    * >> pPiece: Piece to draw >> pRotation: 1 of the 4 possible rotations
    *
-   * @param pPiece
-   * @param pRotation
-   * @return 
-    ***************************************************************************
+   * @param p
+   * @param r
+   * @return
+   * **************************************************************************
    */
-  public static int getXInitialPos(int pPiece, int pRotation) {
-    return initPos[pPiece][pRotation][0];
+  private static int getXInitialPos(int p, int r) {
+    return INITPOS[p][r][0];
   }
 
   /**
@@ -415,12 +420,63 @@ public class Pieces {
    *
    * >> pPiece: Piece to draw >> pRotation: 1 of the 4 possible rotations
    *
-   * @param pPiece
-   * @param pRotation
-   * @return 
-    ***************************************************************************
+   * @param p
+   * @param r
+   * @return
+   * **************************************************************************
    */
-  public static int getYInitialPos(int pPiece, int pRotation) {
-    return initPos[pPiece][pRotation][1];
+  private static int getYInitialPos(int p, int r) {
+    return INITPOS[p][r][1];
+  }
+
+  /**
+   * Rolls initial piece spawn position, including specific offsets, into a
+   * {@link Pair} object for consumption by shape factory.
+   *
+   * @author dylan
+   * @param p
+   * <p>
+   * The index of the collection of piece matrices associated with a specific
+   * piece type, having four elements, one for each possible 90-degree rotation
+   * of that particular tetromino.</p>
+   * @param r
+   * <p>
+   * The index of the specific piece matrix associated with one of the four
+   * possible 90-degree rotations of the tetromino specified by the value of
+   * parameter <code>p</code> .</p>
+   * @return
+   * <p>
+   * A pair of integer values. The first element is between 0 and
+   * <code>N_TETROMINO - 1</code>, and the second is between 0 and
+   * <code>N_ORIENTATIONS - 1</code>.
+   */
+  public static Pair<Integer, Integer> spawnFor(int p, int r) {
+    return new Pair<>(getXInitialPos(p, r), getYInitialPos(p, r));
+  }
+
+
+  /**
+   * Rolls the inverse of an initial piece spawn position's specific offsets 
+   * into a {@link Pair} object for consumption by shape factory.
+   *
+   * @author dylan
+   * @param p
+   * <p>
+   * The index of the collection of piece matrices associated with a specific
+   * piece type, having four elements, one for each possible 90-degree rotation
+   * of that particular tetromino.</p>
+   * @param r
+   * <p>
+   * The index of the specific piece matrix associated with one of the four
+   * possible 90-degree rotations of the tetromino specified by the value of
+   * parameter <code>p</code> .</p>
+   * @return
+   * <p>
+   * A pair of integer values. The first element is the negation of a number 
+   * between 0 and <code>N_TETROMINO - 1</code>, and the second is the negation
+   * of a number between 0 and <code>N_ORIENTATIONS - 1</code>.
+   */
+  public static Pair<Integer, Integer> inverseFor(int p, int r) {
+    return new Pair<>(-getXInitialPos(p, r), -getYInitialPos(p, r));
   }
 }
