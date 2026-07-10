@@ -49,12 +49,18 @@ public class TetrominoGraphics {
   public final static boolean DEBUG_RENDER_PHASES = false;
 
   /**
-   * Every phase dashes on the same period and takes its own offset into it, so
-   * that coincident borders interleave rather than hide one another. Six phases
-   * at two pixels apiece exactly fill the cycle.
+   * A dash is this many pixels long. The period is that length times the number
+   * of outlines presently on the grid, so that each takes its own slot and none
+   * is hidden by another. A lone outline needs no slot, and is drawn solid.
    */
-  private final static float DASH_ON = 2f;
-  private final static float DASH_PERIOD = 12f;
+  private final static float DASH_ON = 3f;
+  private final static Stroke SOLID = new BasicStroke(1f);
+
+  /**
+   * How long a debug outline lingers after the phase which raised it has drawn,
+   * fading the while. Animated phases outlive this and use their own duration.
+   */
+  public final static int DEBUG_GHOST_MS = 450;
 
   /**
    * first item: in-air tetromino GridZone formed from relative union of last
@@ -388,20 +394,27 @@ public class TetrominoGraphics {
      * <p>
      * The zones overlap constantly: the silhouette sits beneath the airborne
      * piece, a placement pulse beneath both. Were every outline solid, the last
-     * one drawn would be the only one seen. Every phase instead dashes on the
-     * same period, and each takes a different offset into it, so six coincident
-     * borders lay their dashes in six disjoint runs of pixels and all six remain
-     * legible. The bit index of the phase's ID is its slot.</p>
+     * one drawn would be the only one seen. They instead share a period equal to
+     * the dash length times their number, each taking a different offset into
+     * it, so that coincident borders lay their dashes in disjoint runs of pixels
+     * and every one remains legible.</p>
+     *
+     * <p>
+     * The period shrinks with the count. Two outlines dash every other three
+     * pixels; a lone one is solid, there being nothing for it to hide from.</p>
      *
      * @author dylan
-     * @param phaseId the phase's bit
+     * @param slot this outline's index among those presently drawn
+     * @param visibleCount how many are presently drawn
      * @return its stroke
      */
-    private static Stroke debugStrokeFor(int phaseId) {
-      int slot = Integer.numberOfTrailingZeros(phaseId);
-      float phase = (DASH_ON * slot) % DASH_PERIOD;
+    private static Stroke debugStrokeFor(int slot, int visibleCount) {
+      if (visibleCount <= 1) {
+        return SOLID; // nothing to interleave with, and a solid box reads best
+      }
+      float period = DASH_ON * visibleCount;
       return new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
-              10f, new float[]{DASH_ON, DASH_PERIOD - DASH_ON}, phase);
+              10f, new float[]{DASH_ON, period - DASH_ON}, DASH_ON * slot);
     }
 
     /**
@@ -419,23 +432,30 @@ public class TetrominoGraphics {
      * @param bPx block size in pixels
      * @param phaseId the phase which claimed the zone, for its colour and dash
      * @param z the zone, or null to draw nothing
+     * @param fade 1 when the phase has just drawn, falling to 0 as it ages out
+     * @param slot this outline's index among those presently drawn
+     * @param visibleCount how many are presently drawn
      * @return the rectangle outlined, in pixels, or null when nothing was drawn
      */
-    public static Rectangle outlineZone__Debug(Graphics g, int bPx, int phaseId, GridZone z) {
+    public static Rectangle outlineZone__Debug(Graphics g, int bPx, int phaseId,
+            GridZone z, float fade, int slot, int visibleCount) {
       if (!DEBUG_RENDER_PHASES || g == null || z == null || bPx <= 0) {
         return null;
       }
-      if (z.w <= 0 || z.h <= 0) {
+      if (z.w <= 0 || z.h <= 0 || fade <= 0f) {
         return null;
       }
       Rectangle r = new Rectangle(z.x * bPx, z.y * bPx, z.w * bPx, z.h * bPx);
 
-      g.setColor(debugColorFor(phaseId));
+      Color base = debugColorFor(phaseId);
+      int alpha = Math.max(1, Math.min(255, Math.round(255f * fade)));
+      g.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(), alpha));
+
       if (g instanceof Graphics2D) {
         Graphics2D g2d = (Graphics2D) g;
         Stroke prior = g2d.getStroke();
         try {
-          g2d.setStroke(debugStrokeFor(phaseId));
+          g2d.setStroke(debugStrokeFor(slot, visibleCount));
           g2d.drawRect(r.x, r.y, r.width - 1, r.height - 1);
         } finally {
           g2d.setStroke(prior);

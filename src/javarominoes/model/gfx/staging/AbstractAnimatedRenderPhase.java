@@ -51,6 +51,14 @@ public abstract class AbstractAnimatedRenderPhase extends AbstractRenderPhase {
   }
 
   /**
+   * @return the wall-clock span this animation occupies, so that the debug
+   * overlay's ghost of it may live exactly as long as the animation does
+   */
+  public int durationMs() {
+    return durationMs;
+  }
+
+  /**
    * Whether the descent timer must be frozen while this animation plays.
    *
    * <p>
