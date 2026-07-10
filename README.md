@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/e22668da-0f95-4c17-be00-5943a10a3cfc
-
 # javarominoes
 
 *A Tetris-inspired block stacking puzzle game, implemented using Java's Swing libraries. Dedicated to my dear Granddad.*
