@@ -44,6 +44,17 @@ public class SilhouettePieceRenderPhase extends AbstractRenderPhase {
     TetrominoState sil = TetrominoState.Factory.silhouetteCopy(active,
             b.getSilhouetteY(active));
     TetrominoGraphics.Render.drawPiece(graphics, bckPix, sil, SILHOUETTE_COLOR);
+    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
+  }
+
+  /**
+   * The banked movement footprint, falling back to where the silhouette sits
+   * right now, for the spawn, where no movement has yet been recorded.
+   */
+  @Override
+  public GridZone debugZone() {
+    GridZone banked = TetrominoGraphics.getSilhouettePieceZone();
+    return banked != null ? banked : currentZone();
   }
 
   /**

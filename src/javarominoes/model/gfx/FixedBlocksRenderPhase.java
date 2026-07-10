@@ -6,6 +6,7 @@ package javarominoes.model.gfx;
 
 import java.awt.Graphics;
 import javarominoes.model.GameState;
+import javarominoes.model.GridZone;
 
 /**
  *
@@ -27,8 +28,28 @@ public class FixedBlocksRenderPhase extends AbstractRenderPhase {
 
   @Override
   public void draw() {
-    TetrominoGraphics.Render.drawStaticBoardBlocks(graphics, 
+    TetrominoGraphics.Render.drawStaticBoardBlocks(graphics,
             gameState.getBoardState(), bckPix);
+    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
+  }
+
+  /**
+   * The union of every static zone awaiting a bake. Peeked rather than drained:
+   * GridPanel is about to drain them itself, and asks for this beforehand.
+   *
+   * @return the region the next bake will touch, or null when none is queued
+   */
+  @Override
+  public GridZone debugZone() {
+    GridZone union = null;
+    for (GridZone z : TetrominoGraphics.peekDirtyStaticZones()) {
+      if (union == null) {
+        union = GridZone.copyOf(z); // scaleToContain mutates; never the original
+      } else {
+        union.scaleToContain(z);
+      }
+    }
+    return union;
   }
 
   @Override

@@ -103,6 +103,22 @@ public class GameController extends JLayeredPane implements ActionListener {
     return gameOver;
   }
 
+  /**
+   * Whether the game is paused by the player, as against ended.
+   *
+   * <p>
+   * The pause menu is shown for both, so its visibility alone will not do. A
+   * lost board stays on view, since there is nothing left to study; a paused one
+   * is curtained, so that pausing confers no advantage.</p>
+   *
+   * @return whether the pause menu is up, and showing a pause rather than a loss
+   */
+  public boolean isPaused() {
+    return pauseMenuPanel != null
+            && pauseMenuPanel.isVisible()
+            && pauseMenuPanel.isShowingPause();
+  }
+
   public PauseMenuPanel getPauseMenuPanel() {
     return pauseMenuPanel != null ? pauseMenuPanel : null;
   }
@@ -263,9 +279,12 @@ public class GameController extends JLayeredPane implements ActionListener {
   }
 
   /**
-   * Freezes the descent timer while the view plays a placement or line clear
-   * animation. startBlockTimer's pause accounting guarantees the interrupted
-   * TTD interval's total active duration is preserved across the freeze.
+   * Freezes the descent timer while the view plays an animation which has
+   * declared that it halts gameplay, which is to say a line clear.
+   * startBlockTimer's pause accounting guarantees the interrupted TTD interval's
+   * total active duration is preserved across the freeze.
+   *
+   * @see javarominoes.model.gfx.AbstractAnimatedRenderPhase#haltsGameplay()
    */
   public void holdForAnimation() {
     if (gameOver || animationHold) {

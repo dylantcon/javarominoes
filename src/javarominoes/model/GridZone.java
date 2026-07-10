@@ -88,6 +88,17 @@ public class GridZone {
     return this.setW(dimDuple.f).setH(dimDuple.s);
   }
 
+  /**
+   * scaleToContain mutates its receiver, so anything unioning a zone it does
+   * not own must union a copy of it instead.
+   *
+   * @param gz a zone, or null
+   * @return an independent zone with the same geometry, or null
+   */
+  public static GridZone copyOf(GridZone gz) {
+    return gz == null ? null : new GridZone(gz.x, gz.y, gz.w, gz.h);
+  }
+
   public GridZone scaleToContain(GridZone gz) {
     int x1 = Math.min(x, gz.x);
     int y1 = Math.min(y, gz.y);

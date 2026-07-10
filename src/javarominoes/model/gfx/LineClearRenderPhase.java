@@ -64,11 +64,17 @@ public class LineClearRenderPhase extends AbstractAnimatedRenderPhase {
       graphics.fillRect(Math.max((wPx / 2) - half - EDGE_PX, 0), yPx, EDGE_PX, hPx);
       graphics.fillRect(Math.min((wPx / 2) + half, wPx - EDGE_PX), yPx, EDGE_PX, hPx);
     }
+    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
   }
 
   @Override
   public GridZone getZone() {
     return GridZone.Factory.rowBand(top, btm);
+  }
+
+  @Override
+  public GridZone debugZone() {
+    return getZone();
   }
 
   /**

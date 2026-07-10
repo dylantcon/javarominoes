@@ -4,6 +4,7 @@
  */
 package javarominoes.view;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -51,6 +52,11 @@ class GridPanel extends JPanel {
    * bottom layer of every repaint.
    */
   private BufferedImage staticLayer;
+  /**
+   * Grey blocks, drawn over the field while the pause menu is up.
+   */
+  private BufferedImage pauseCurtain;
+  private static final Color CURTAIN_BLOCK = new Color(0x9A9A9A);
   private final Timer animationTimer = new Timer(ANIMATION_TICK_MS, e -> stepAnimations());
   private final BoardPanel out;
 
@@ -88,11 +94,14 @@ class GridPanel extends JPanel {
         repaint();
         break;
       case RenderPhase.Factory.ID_FBRP:
+        // asked before the drain, since the drain is what empties it
+        GridZone baked = arp.debugZone();
         // bake newly landed blocks into the static layer, zone by zone
         for (GridZone zone : TetrominoGraphics.drainDirtyStaticZones()) {
           bakeStaticZone(zone, bPx);
           repaintZone(zone);
         }
+        outlineIntoStaticLayer(arp.getRenderPhaseId(), baked, bPx);
         break;
       case RenderPhase.Factory.ID_SPRP:
         gz = TetrominoGraphics.getSilhouettePieceZone();
@@ -136,9 +145,12 @@ class GridPanel extends JPanel {
     anim.begin();
     SortedInserter.insertInOrder(residentRenderPhases, anim);
     repaintZone(anim.getZone());
-    // gravity freezes while animations play; the block timer's pause
-    // accounting keeps the interrupted TTD interval's duration intact
-    out.controller.holdForAnimation();
+    // only an animation which says so freezes gravity; the block timer's pause
+    // accounting keeps the interrupted TTD interval's duration intact. the
+    // placement pulse does not, and plays over a game which carries on
+    if (anim.haltsGameplay()) {
+      out.controller.holdForAnimation();
+    }
     if (!animationTimer.isRunning()) {
       animationTimer.start();
     }
@@ -147,10 +159,17 @@ class GridPanel extends JPanel {
   /**
    * Timer-driven animation pump: repaints live animation zones, retires
    * finished ones, and rebakes/reveals the shifted rows once a line clear
-   * finishes. Stops itself (and thaws gravity) when no animations remain.
+   * finishes.
+   *
+   * <p>
+   * Gravity is thawed the moment no <em>halting</em> animation remains, which
+   * is not the same moment the timer stops. A placement pulse may still be
+   * fading while the next piece is already descending through it.</p>
    */
   private void stepAnimations() {
     boolean anyLive = false;
+    boolean anyHalting = false;
+
     Iterator<AbstractRenderPhase> it = residentRenderPhases.iterator();
     while (it.hasNext()) {
       AbstractRenderPhase arp = it.next();
@@ -169,12 +188,16 @@ class GridPanel extends JPanel {
         }
       } else {
         anyLive = true;
+        anyHalting |= anim.haltsGameplay();
         repaintZone(anim.getZone());
       }
     }
+
+    if (!anyHalting) {
+      out.controller.releaseAnimationHold(); // a no-op unless a hold is standing
+    }
     if (!anyLive) {
       animationTimer.stop();
-      out.controller.releaseAnimationHold();
     }
   }
 
@@ -219,6 +242,62 @@ class GridPanel extends JPanel {
     }
   }
 
+  /**
+   * The static phases never draw onto the screen, so their debug outlines are
+   * laid into the layer they baked, where they persist until it is rebaked.
+   * That is the honest picture: it shows the region the static layer last had
+   * redrawn, rather than a box which blinks for one frame.
+   */
+  private void outlineIntoStaticLayer(int phaseId, GridZone gz, int bPx) {
+    if (!TetrominoGraphics.DEBUG_RENDER_PHASES || staticLayer == null || gz == null) {
+      return;
+    }
+    Graphics2D big = staticLayer.createGraphics();
+    try {
+      TetrominoGraphics.Render.outlineZone__Debug(big, bPx, phaseId, gz);
+    } finally {
+      big.dispose();
+    }
+  }
+
+  /**
+   * A curtain of featureless grey blocks, drawn in place of the board while the
+   * pause menu is up. The original game hides the field for the same reason:
+   * a paused board is a board the player may study at leisure.
+   *
+   * <p>
+   * Baked once per size. It never changes, having nothing to say about the
+   * board it conceals.</p>
+   */
+  private void rebuildPauseCurtain() {
+    int w = getWidth();
+    int h = getHeight();
+    if (w <= 0 || h <= 0) {
+      pauseCurtain = null;
+      return;
+    }
+    int bPx = getBlockSize();
+    pauseCurtain = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+    Graphics2D cg = pauseCurtain.createGraphics();
+    try {
+      RenderPhase.Factory.boardRegionRenderPhase(cg, out.gameState, bPx).draw();
+      cg.setColor(CURTAIN_BLOCK);
+      for (int col = 0; col < Board.WIDTH; ++col) {
+        for (int row = 0; row < Board.HEIGHT; ++row) {
+          cg.fill3DRect(col * bPx, row * bPx, bPx, bPx, true);
+        }
+      }
+    } finally {
+      cg.dispose();
+    }
+  }
+
+  private boolean curtainIsStale() {
+    return pauseCurtain == null
+            || pauseCurtain.getWidth() != getWidth()
+            || pauseCurtain.getHeight() != getHeight();
+  }
+
   private int getBlockSize() {
     return Math.max(out.getHeight() / Board.HEIGHT, 1);
   }
@@ -234,6 +313,18 @@ class GridPanel extends JPanel {
    */
   @Override
   protected void paintComponent(Graphics g) {
+    // a paused board is concealed outright: neither the static layer nor the
+    // resident phases are drawn, so nothing of the field survives the curtain
+    if (out.controller.isPaused()) {
+      if (curtainIsStale()) {
+        rebuildPauseCurtain();
+      }
+      if (pauseCurtain != null) {
+        g.drawImage(pauseCurtain, 0, 0, null);
+        return;
+      }
+    }
+
     // no super call: the static layer covers every pixel of the panel
     if (staticLayer == null || staticLayer.getWidth() != getWidth() || staticLayer.getHeight() != getHeight()) {
       rebuildStaticLayer();

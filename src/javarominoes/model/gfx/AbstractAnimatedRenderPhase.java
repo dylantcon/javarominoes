@@ -51,6 +51,24 @@ public abstract class AbstractAnimatedRenderPhase extends AbstractRenderPhase {
   }
 
   /**
+   * Whether the descent timer must be frozen while this animation plays.
+   *
+   * <p>
+   * A line clear must halt the game: the rows it is dissolving are already gone
+   * from the board, so a piece descending through them would be reasoning about
+   * a board the player cannot yet see. A placement pulse need not: it is a
+   * flourish over blocks which are already fixed and already baked into the
+   * static layer, and freezing the controls to play it only makes the game feel
+   * as though it were stuttering.</p>
+   *
+   * @author dylan
+   * @return whether gravity and input should wait for this animation
+   */
+  public boolean haltsGameplay() {
+    return true;
+  }
+
+  /**
    * @return the grid region this animation dirties each frame
    */
   public abstract GridZone getZone();

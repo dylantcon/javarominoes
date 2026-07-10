@@ -63,15 +63,44 @@ the platform's ~15.6 ms timer granularity, which swamps the figure sought.
 
 | operation | primitives | filled px | JVM time |
 |---|---|---|---|
-| old `GridPanel.paintComponent` | 557 | 439,740 | 165 us |
-| new `GridPanel.paintComponent` | 41 | 6,272 + a 180,300 px blit | 66 us |
-| `bakeStaticZone`, whole board | 512 | 255,264 | 230 us |
+| old `GridPanel.paintComponent` | 557 | 439,740 | 166 us |
+| new `GridPanel.paintComponent` | 41 | 6,272 + a 180,300 px blit | 65 us |
+| new movement cycle, clipped | 41 | 13,500 clip | 44 us |
+| `bakeStaticZone`, whole board | 512 | 255,264 | 227 us |
 | `bakeStaticZone`, a four-row band | 176 | 61,088 | -- |
+| `bakeStaticZone`, one landing (2x3 cells) | **33** | 9,320 | -- |
 | old `InfoPanel.paintComponent` | -- | -- | 81 us |
 | new `InfoPanel.paintComponent` | -- | -- | 85 us |
 
 The 96 landed blocks cost 480 primitives, because `fill3DRect` is five of them.
-The rewrite moved that cost out of every paint and into every landing.
+The rewrite moved that cost out of every paint and into every landing, and the
+clip-bounded loops then shrank a landing from 512 primitives to 33.
+
+### How often each runs
+
+This is where the whole thing is won, and it is not visible in the table above.
+
+| | old | new |
+|---|---|---|
+| `GridPanel` full paint | 60 / sec | never, during play |
+| `GridPanel` clipped paint | -- | one per piece movement |
+| `InfoPanel` paint | 60 / sec | on a score or drop-speed change |
+| board redraw (480 primitives) | 60 / sec | once per landing, footprint-sized |
+
+Estimating a movement rate of ~30/sec under DAS and ~20 score updates/sec under
+soft drop, EDT time spent painting falls from about **14.8 ms per second of play**
+to about **3.1 ms**, and `GridPanel` primitives issued fall from **33,420/sec** to
+roughly **1,300/sec**. The second figure is the one CheerpJ bills for.
+
+### Input blackout
+
+`TetrisKeyListener.handleKeyInput` ignores every key while
+`game.blockTimer.isRunning()` is false, and `holdForAnimation()` stops that timer.
+The 100 ms placement pulse was therefore swallowing all input after *every piece*.
+`AbstractAnimatedRenderPhase.haltsGameplay()` now lets the pulse play over a
+running game; only the line clear, which dissolves rows already deleted from the
+board, still halts. That removes roughly a tenth of a second of dropped input per
+landing.
 
 ### What the profiling turned up, and what was done about it
 

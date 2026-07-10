@@ -9,6 +9,7 @@ import java.awt.Graphics;
 import java.awt.Rectangle;
 import javarominoes.model.Board;
 import javarominoes.model.GameState;
+import javarominoes.model.GridZone;
 
 /**
  *
@@ -76,6 +77,16 @@ public class BoardRegionRenderPhase extends AbstractRenderPhase {
     for (int col = cells.x; col <= lastCol; ++col) {
       graphics.drawLine(col * bckPix, 0, col * bckPix, gridH);
     }
+
+    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
+  }
+
+  /**
+   * The board region is the board. Its outline traces the playfield.
+   */
+  @Override
+  public GridZone debugZone() {
+    return GridZone.Factory.rowBand(0, Board.HEIGHT - 1);
   }
 
   @Override

@@ -6,6 +6,7 @@ package javarominoes.model.gfx;
 
 import java.awt.Graphics;
 import javarominoes.model.GameState;
+import javarominoes.model.GridZone;
 
 /**
  *
@@ -56,6 +57,23 @@ public abstract class AbstractRenderPhase implements RenderPhase,
 
   public int getBlockPixels() {
     return this.bckPix;
+  }
+
+  /**
+   * The region this phase lays claim to, for the debug overlay alone.
+   *
+   * <p>
+   * Distinct from {@link AbstractAnimatedRenderPhase#getZone()}, which is the
+   * region an animation dirties every frame and which the pump repaints. A
+   * phase may claim a region without dirtying one each frame, as the board
+   * region and the fixed blocks do.</p>
+   *
+   * @author dylan
+   * @return the zone, or null where the phase has none to speak of at the
+   * moment it is asked
+   */
+  public GridZone debugZone() {
+    return null;
   }
 
   @Override

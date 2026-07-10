@@ -25,9 +25,23 @@ public class TetrominoGraphics {
 
   private final static Color GOLD = new Color(255, 223, 0);
   private final static Color BRIGHT_ORANGE = new Color(255, 92, 0);
-  private final static Color FOOTPRINT_1 = new Color(0x2B00B5);
-  private final static Color FOOTPRINT_2 = new Color(0xC0FFEE);
-  private final static boolean DEBUG_TETROMINO_GRAPHICS = false;
+  /**
+   * One colour per render phase, so that a screenshot says which phase laid
+   * claim to which region. The two originals are kept for the silhouette and
+   * the airborne piece.
+   */
+  private final static Color FOOTPRINT_SPRP = new Color(0x2B00B5);
+  private final static Color FOOTPRINT_APRP = new Color(0xC0FFEE);
+  private final static Color FOOTPRINT_BRRP = new Color(0x8A2BE2);
+  private final static Color FOOTPRINT_FBRP = new Color(0x00B5FF);
+  private final static Color FOOTPRINT_PPRP = new Color(0xFFAA00);
+  private final static Color FOOTPRINT_LCRP = new Color(0xFF0055);
+
+  /**
+   * Outlines every render phase's GridZone. Costs nothing when false: each
+   * phase asks for its zone only after this has been consulted.
+   */
+  public final static boolean DEBUG_RENDER_PHASES = false;
 
   /**
    * first item: in-air tetromino GridZone formed from relative union of last
@@ -67,6 +81,14 @@ public class TetrominoGraphics {
     ArrayList<GridZone> drained = new ArrayList<>(dirtyStaticZones);
     dirtyStaticZones.clear();
     return drained;
+  }
+
+  /**
+   * The pending static zones, without consuming them. Only the debug overlay
+   * of FixedBlocksRenderPhase wants to look without taking.
+   */
+  public static ArrayList<GridZone> peekDirtyStaticZones() {
+    return new ArrayList<>(dirtyStaticZones);
   }
 
   public static void markLineClearDirtyZone(TetrominoState clearState, int t, int b) {
@@ -261,8 +283,6 @@ public class TetrominoGraphics {
       }
       // padding set only affects the next render. reset it to 0.
       TetrominoGraphics.clearRenderOffsets();
-
-      drawFootprintGridZones__Debug(g, bPx);
     }
 
     /**
@@ -302,39 +322,75 @@ public class TetrominoGraphics {
      * @param g
      * @param bPx 
      */
-    public static void drawFootprintGridZones__Debug(Graphics g, int bPx) {
-      if (!DEBUG_TETROMINO_GRAPHICS || g == null) {
+    private static Color debugColorFor(int phaseId) {
+      switch (phaseId) {
+        case RenderPhase.Factory.ID_BRRP:
+          return FOOTPRINT_BRRP;
+        case RenderPhase.Factory.ID_FBRP:
+          return FOOTPRINT_FBRP;
+        case RenderPhase.Factory.ID_SPRP:
+          return FOOTPRINT_SPRP;
+        case RenderPhase.Factory.ID_APRP:
+          return FOOTPRINT_APRP;
+        case RenderPhase.Factory.ID_PPRP:
+          return FOOTPRINT_PPRP;
+        case RenderPhase.Factory.ID_LCRP:
+          return FOOTPRINT_LCRP;
+        default:
+          return Color.WHITE;
+      }
+    }
+
+    /**
+     * Outlines a zone in its phase's colour, one pixel outside the blocks it
+     * covers, so that the outline never hides the thing it describes.
+     *
+     * @author dylan
+     * @param g the surface the phase drew onto
+     * @param bPx block size in pixels
+     * @param phaseId the phase which claimed the zone, for its colour
+     * @param z the zone, or null to draw nothing
+     */
+    public static void outlineZone__Debug(Graphics g, int bPx, int phaseId, GridZone z) {
+      if (!DEBUG_RENDER_PHASES || g == null || z == null || bPx <= 0) {
         return;
       }
-      if (tetrominoFootprint == null) {
+      // one pixel outside the blocks, then pulled back onto the surface: a zone
+      // flush with the board's edge would otherwise outline itself off it
+      int x0 = (z.x * bPx) - 1;
+      int y0 = (z.y * bPx) - 1;
+      int x1 = x0 + (z.w * bPx);
+      int y1 = y0 + (z.h * bPx);
+
+      Rectangle clip = g.getClipBounds();
+      if (clip != null) {
+        x0 = Math.max(x0, clip.x);
+        y0 = Math.max(y0, clip.y);
+        x1 = Math.min(x1, clip.x + clip.width - 1);
+        y1 = Math.min(y1, clip.y + clip.height - 1);
+      }
+      if (x1 <= x0 || y1 <= y0) {
         return;
       }
-      /* by this point, it is guaranteed that all data is present. as a result,
-          we may confidently instantiate statically allocated local variables */
-      int xPx, yPx, wPx, hPx;
-      TetrominoGraphics.offsetNextRender().xBy(-1).yBy(-1);
+      g.setColor(debugColorFor(phaseId));
+      g.drawRect(x0, y0, x1 - x0, y1 - y0);
+    }
 
-      if (tetrominoFootprint.s != null) {
-        // draw the silhouette's associated grid zone. must do geometry
-        xPx = tetrominoFootprint.s.x * bPx + TetrominoGraphics.OFFSET_X;
-        yPx = tetrominoFootprint.s.y * bPx + TetrominoGraphics.OFFSET_Y;
-        wPx = tetrominoFootprint.s.w * bPx;
-        hPx = tetrominoFootprint.s.h * bPx;
-        g.setColor(FOOTPRINT_1);
-        g.drawRect(xPx, yPx, wPx, hPx);
+    /**
+     * The form every phase calls at the end of its own draw(). The zone is
+     * asked for only once the flag is known to be set, so a release build pays
+     * a branch and nothing more.
+     *
+     * @author dylan
+     * @param g the surface the phase drew onto
+     * @param bPx block size in pixels
+     * @param phase the phase which has just drawn itself
+     */
+    public static void outlinePhase__Debug(Graphics g, int bPx, AbstractRenderPhase phase) {
+      if (!DEBUG_RENDER_PHASES || phase == null) {
+        return;
       }
-
-      if (tetrominoFootprint.f != null) {
-        // second, draw the active piece's associated grid zone. same as above
-        xPx = tetrominoFootprint.f.x * bPx + TetrominoGraphics.OFFSET_X;
-        yPx = tetrominoFootprint.f.y * bPx + TetrominoGraphics.OFFSET_Y;
-        wPx = tetrominoFootprint.f.w * bPx;
-        hPx = tetrominoFootprint.f.h * bPx;
-        g.setColor(FOOTPRINT_2);
-        g.drawRect(xPx, yPx, wPx, hPx);
-      }
-
-      TetrominoGraphics.clearRenderOffsets();
+      outlineZone__Debug(g, bPx, phase.getRenderPhaseId(), phase.debugZone());
     }
   }
 }

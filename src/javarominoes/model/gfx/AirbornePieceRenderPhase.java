@@ -6,6 +6,7 @@ package javarominoes.model.gfx;
 
 import java.awt.Graphics;
 import javarominoes.model.GameState;
+import javarominoes.model.GridZone;
 
 /**
  *
@@ -33,6 +34,16 @@ public class AirbornePieceRenderPhase extends AbstractRenderPhase {
     // the override variant positions the piece by its grid coordinates; the
     // 3-arg variant is for positionless previews and draws at the origin
     TetrominoGraphics.Render.drawPiece(graphics, bckPix, gameState.active(), null);
+    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
+  }
+
+  /**
+   * The union of the piece's last and current positions, as banked by
+   * TetrominoGraphics.bankLastTetrominoFootprint.
+   */
+  @Override
+  public GridZone debugZone() {
+    return TetrominoGraphics.getActivePieceZone();
   }
 
   @Override

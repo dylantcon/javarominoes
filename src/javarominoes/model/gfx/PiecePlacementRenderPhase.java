@@ -70,12 +70,28 @@ public class PiecePlacementRenderPhase extends AbstractAnimatedRenderPhase {
         }
       }
     }
+    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
   }
 
   @Override
   public GridZone getZone() {
     return GridZone.boundingBox(Pieces.MATRIX[landed.tyRot.f][landed.tyRot.s],
             landed.xy);
+  }
+
+  @Override
+  public GridZone debugZone() {
+    return getZone();
+  }
+
+  /**
+   * The pulse plays over blocks already fixed in the board and already baked
+   * into the static layer. Nothing it draws can mislead the player as to where
+   * a piece may fall, so gravity and the controls carry on beneath it.
+   */
+  @Override
+  public boolean haltsGameplay() {
+    return false;
   }
 
   @Override
