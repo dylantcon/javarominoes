@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/e22668da-0f95-4c17-be00-5943a10a3cfc
+
 # javarominoes
 
 *A Tetris-inspired block stacking puzzle game, implemented using Java's Swing libraries. Dedicated to my dear Granddad.*
@@ -174,9 +178,10 @@ This is the part of the project I am proudest of, so allow me a thesis before th
 
 #### Watching It Work
 
-None of the selective machinery above would deserve anyone's trust without a way to watch it operate, so the renderer carries its own witness: `TetrominoGraphics.DEBUG_RENDER_PHASES`, a compile-time flag that `javac` constant-folds, so the entire apparatus costs nothing when off. When it is on, every phase that draws raises a *ghost*: a dashed outline over the exact zone it painted, which rises, fades across its allotted span, and retires. A plain phase's ghost lives 450 ms; an animated phase's ghost lives exactly as long as its animation, so the outline is always a truthful shadow of the work. Each phase owns at most one ghost, perpetually renewed rather than trailed, which is why the airborne piece drags a single refreshed rectangle down the board instead of shedding a stack of them. The ghosts matter most for $\tt B_{RRP}$ and $\tt F_{BRP}$, which never draw to the screen at all; their outlines, raised at the site of each bake, are the only visible evidence those phases exist. A monospaced legend captions whichever outlines are currently alive, listed bottom layer first, and the legend is baked into its own buffer and owned by the `GridPanel`, the panel whose pixels it paints.
+None of the selective machinery above would deserve anyone's trust without a way to watch it operate, so the renderer carries its own witness: `TetrominoGraphics.DEBUG_RENDER_PHASES`, a compile-time flag that `javac` constant-folds, so the entire apparatus costs nothing when off. When it is on, every phase that draws raises a *ghost*: a dashed outline over the exact zone it painted, which rises, fades across its allotted span, and retires. A plain phase's ghost lives 450 ms; an animated phase's ghost lives exactly as long as its animation, so the outline is always a truthful shadow of the work. Each phase owns at most one ghost, perpetually renewed rather than trailed, which is why the airborne piece drags a single refreshed rectangle down the board instead of shedding a stack of them. The ghosts matter most for $\tt B_{RRP}$ and $\tt F_{BRP}$, which never draw to the screen at all; their outlines, raised at the site of each bake, are the only visible evidence those phases exist. A monospaced legend captions whichever outlines are currently alive, listed bottom layer first, and the legend is baked into its own buffer and owned by the `GridPanel`, the panel whose pixels it paints. Observe:
 
-![video](https://learn.dconn.dev/images/demo-video.mp4)
+<video src="https://github.com/user-attachments/assets/ba6949e0-d87d-4f89-b945-e445da795fee" width="100%" controls>
+</video>
 
 The overlay even caught a bug in itself, which is the strongest endorsement I can give it. A movement footprint is the union of the piece's last and current positions, so a piece traveling steadily leaves each footprint's trailing edge just outside the next one, and an outline drawn on that trailing edge sits beyond the reach of any repaint clipped to the newer zone. My first version left dashed bones scattered down the board behind every falling piece. The fix costs exactly one rectangle union: `repaintZone` sweeps the previous paint's outline bounds in alongside the new zone, so that a zone now owns every pixel its outline paints.
 
