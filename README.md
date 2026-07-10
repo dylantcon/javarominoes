@@ -176,6 +176,8 @@ This is the part of the project I am proudest of, so allow me a thesis before th
 
 None of the selective machinery above would deserve anyone's trust without a way to watch it operate, so the renderer carries its own witness: `TetrominoGraphics.DEBUG_RENDER_PHASES`, a compile-time flag that `javac` constant-folds, so the entire apparatus costs nothing when off. When it is on, every phase that draws raises a *ghost*: a dashed outline over the exact zone it painted, which rises, fades across its allotted span, and retires. A plain phase's ghost lives 450 ms; an animated phase's ghost lives exactly as long as its animation, so the outline is always a truthful shadow of the work. Each phase owns at most one ghost, perpetually renewed rather than trailed, which is why the airborne piece drags a single refreshed rectangle down the board instead of shedding a stack of them. The ghosts matter most for $\tt B_{RRP}$ and $\tt F_{BRP}$, which never draw to the screen at all; their outlines, raised at the site of each bake, are the only visible evidence those phases exist. A monospaced legend captions whichever outlines are currently alive, listed bottom layer first, and the legend is baked into its own buffer and owned by the `GridPanel`, the panel whose pixels it paints.
 
+![video](https://learn.dconn.dev/images/demo-video.mp4)
+
 The overlay even caught a bug in itself, which is the strongest endorsement I can give it. A movement footprint is the union of the piece's last and current positions, so a piece traveling steadily leaves each footprint's trailing edge just outside the next one, and an outline drawn on that trailing edge sits beyond the reach of any repaint clipped to the newer zone. My first version left dashed bones scattered down the board behind every falling piece. The fix costs exactly one rectangle union: `repaintZone` sweeps the previous paint's outline bounds in alongside the new zone, so that a zone now owns every pixel its outline paints.
 
 Below is the complete set of legend states the board can actually reach. Read the gallery's absences as carefully as its entries: there is no silhouette outline without an airborne one beside it, because a silhouette implies the piece that casts it (though the converse fails, as pure descent renders the piece alone); there is no $\tt L_{CRP}$ without the landing that caused it; and the two bake outlines partition their duties, with $\tt B_{RRP}$ appearing only when the entire static layer is recreated and $\tt F_{BRP}$ riding every incremental bake. The combinations you cannot photograph are the architecture's invariants, made visible by omission.
@@ -183,42 +185,42 @@ Below is the complete set of legend states the board can actually reach. Read th
 ##### $\tt A_{PRP}$
 The simplest render produced by game state changes. The image depicts a scenario in which there is a piece that has only descended downward one tile relative to its previous position. As a result, the prior silhouette render job also correctly portrays the silhouette for this current snapshot of the game state.
 
-![img](aprp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/aprp.png)
 
 ##### $\tt B_{RRP}, S\tt _{PRP}, \tt A_{PRP}$
 The state that begins every game and follows every resize. The entire static layer, board region and any landed blocks alike, is recreated wholesale, so $\tt B_{RRP}$'s outline spans the full board; there is no separate incremental crud pass for $\tt F_{BRP}$ to announce, because the recreation subsumes it. The active piece and its silhouette are then redrawn over the fresh buffer, contributing the pair. At $t = 0$, this is the first picture the overlay can ever show.
 
-![img](brrp-sprp-aprp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/brrp-sprp-aprp.png)
 
 ##### $\tt F_{BRP}$
 The quietest state after $\tt A_{PRP}$ alone, and the signature of a finished line clear. $\tt L_{CRP}$ has completed its playback and requested a bounded rebake of the shifted board state, so the band above the cleared rows is re-rasterized into the static layer, and $\tt F_{BRP}$'s outline is the receipt. The active piece has not moved since its last coordinate-delta-incurred render, so no other phase has anything to report. Note the absence: $\tt L_{CRP}$'s own outline retired at the same instant its animation finished, as an animated ghost always does.
 
-![img](fbrp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/fbrp.png)
 
 ##### $\tt F_{BRP}, \tt A_{PRP}$
 The prior scenario, with one difference: the piece moved inside the same window. The movement was pure descent, so the silhouette's projected landing position is unchanged and $\tt S_{PRP}$ correctly stays silent; only $\tt A_{PRP}$'s union footprint joins the post-clear rebake. This tableau is common, because gravity thaws at the very moment the clear's playback ends; the halt lifts, the piece drops a row, and both facts arrive on screen in the same paint.
 
-![img](fbrp-aprp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/fbrp-aprp.png)
 
 ##### $\tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}$
 A composition of two independent events. The player has just placed an I piece on its side, and that landing baked a footprint of crud into the static layer, so $\tt F_{BRP}$'s 450 ms outline still marks the site. In the meantime, the player has moved the incoming L piece laterally into the space above the fresh placement; a lateral move relocates the silhouette, so $\tt S_{PRP}$ and $\tt A_{PRP}$ rise together. The placement pulse itself is conspicuously missing, and that is its 120 ms lifespan doing its job: $\tt P_{PRP}$'s ghost is the shortest-lived in the family, and it is always the first to leave a post-landing tableau. Rewind this same scene by a tenth of a second, and you get the quartet two entries below.
 
-![img](fbrp-sprp-aprp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp.png)
 
 ##### $\tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}, L_{CRP}$
 The moment immediately after a state change that detected a four-line clear. The landing itself baked the placed piece into the static layer ($\tt F_{BRP}$), the detection began $\tt L_{CRP}$'s playback over the doomed band, and the next piece spawned with its silhouette, raising the pair. Four outlines, three causes, one instant. Gravity is halted for exactly as long as the clear's outline stays on screen, so the pair will not move until the band finishes dissolving.
 
-![img](fbrp-sprp-aprp-lcrp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp-lcrp.png)
 
 ##### $\tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}, P_{PRP}$
 The moment immediately after a placement whose successor spawned into overlapping columns. The landing baked its crud ($\tt F_{BRP}$) and began its 120 ms pulse ($\tt P_{PRP}$), and the respawned piece arrived with a silhouette whose horizontal extent overlaps the placed piece below, stacking the pair's outlines directly above the pulse's. This is also the picture that justifies the phase ordering: $\tt P_{PRP}$ sorts after the pair precisely so that the flourish paints over the piece it celebrates, never under it.
 
-![img](fbrp-sprp-aprp-pprp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp-pprp.png)
 
 ##### $\tt B_{RRP}, \tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}, P_{PRP}$
 The fullest tableau a non-clearing landing can produce, and it needs the player's help to exist. A normal landing fires, and within the pulse's 120 ms window, the panel is resized; the next paint re-rasterizes the entire static layer at the new block size, raising $\tt B_{RRP}$ over the full board on top of the still-live quartet of the landing's crud bake, the respawned pair, and the fading pulse. All five outlines coexist for whatever remains of those 120 milliseconds. The one absence is structural rather than circumstantial: $\tt L_{CRP}$ cannot join this picture, because its presence would require a completed-line landing, which is a different family of states entirely.
 
-![img](fbrp-sprp-aprp-pprp-lcrp.png)
+![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp-pprp-lcrp.png)
 
 #### The Numbers
 The benchmarks drive `GridPanel.paintComponent` directly, by reflection, into an offscreen image, comparing today's renderer against `e2c2fc7`, the last commit before the rewrite; no window is ever shown, so what is measured is the panel and not the compositor. First, what a single paint costs. The old `paintComponent` issued 557 drawing primitives and filled 439,740 pixels on *every* frame, whether anything had changed or not, for about 166 µs of EDT time per call. The count is dominated by the test scene's 96 landed blocks: `fill3DRect` decomposes into one `fillRect` and four `drawLine`s, so every block is five primitives, not one. The new `paintComponent` issues 41 primitives over 6,272 freshly filled pixels plus one blit of the static layer, for about 65 µs; clipped to a movement footprint, which is the overwhelmingly common case, the entire movement-plus-silhouette cycle is 44 µs over a 13,500-pixel clip.
