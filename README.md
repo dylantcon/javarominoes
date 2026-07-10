@@ -188,7 +188,7 @@ The simplest render produced by game state changes. The image depicts a scenario
 
 ![img](https://vault.dconn.dev/projects/javarominoes/aprp.png)
 
-##### $\tt B_{RRP}, S\tt _{PRP}, \tt A_{PRP}$
+##### $\tt B_{RRP}, S_{PRP}, A_{PRP}$
 The state that begins every game and follows every resize. The entire static layer, board region and any landed blocks alike, is recreated wholesale, so $\tt B_{RRP}$'s outline spans the full board; there is no separate incremental crud pass for $\tt F_{BRP}$ to announce, because the recreation subsumes it. The active piece and its silhouette are then redrawn over the fresh buffer, contributing the pair. At $t = 0$, this is the first picture the overlay can ever show.
 
 ![img](https://vault.dconn.dev/projects/javarominoes/brrp-sprp-aprp.png)
@@ -198,27 +198,27 @@ The quietest state after $\tt A_{PRP}$ alone, and the signature of a finished li
 
 ![img](https://vault.dconn.dev/projects/javarominoes/fbrp.png)
 
-##### $\tt F_{BRP}, \tt A_{PRP}$
+##### $\tt F_{BRP}, A_{PRP}$
 The prior scenario, with one difference: the piece moved inside the same window. The movement was pure descent, so the silhouette's projected landing position is unchanged and $\tt S_{PRP}$ correctly stays silent; only $\tt A_{PRP}$'s union footprint joins the post-clear rebake. This tableau is common, because gravity thaws at the very moment the clear's playback ends; the halt lifts, the piece drops a row, and both facts arrive on screen in the same paint.
 
 ![img](https://vault.dconn.dev/projects/javarominoes/fbrp-aprp.png)
 
-##### $\tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}$
+##### $\tt F_{BRP}, S_{PRP}, A_{PRP}$
 A composition of two independent events. The player has just placed an I piece on its side, and that landing baked a footprint of crud into the static layer, so $\tt F_{BRP}$'s 450 ms outline still marks the site. In the meantime, the player has moved the incoming L piece laterally into the space above the fresh placement; a lateral move relocates the silhouette, so $\tt S_{PRP}$ and $\tt A_{PRP}$ rise together. The placement pulse itself is conspicuously missing, and that is its 120 ms lifespan doing its job: $\tt P_{PRP}$'s ghost is the shortest-lived in the family, and it is always the first to leave a post-landing tableau. Rewind this same scene by a tenth of a second, and you get the quartet two entries below.
 
 ![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp.png)
 
-##### $\tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}, L_{CRP}$
+##### $\tt F_{BRP}, S_{PRP}, A_{PRP}, L_{CRP}$
 The moment immediately after a state change that detected a four-line clear. The landing itself baked the placed piece into the static layer ($\tt F_{BRP}$), the detection began $\tt L_{CRP}$'s playback over the doomed band, and the next piece spawned with its silhouette, raising the pair. Four outlines, three causes, one instant. Gravity is halted for exactly as long as the clear's outline stays on screen, so the pair will not move until the band finishes dissolving.
 
 ![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp-lcrp.png)
 
-##### $\tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}, P_{PRP}$
+##### $\tt F_{BRP}, S_{PRP}, A_{PRP}, P_{PRP}$
 The moment immediately after a placement whose successor spawned into overlapping columns. The landing baked its crud ($\tt F_{BRP}$) and began its 120 ms pulse ($\tt P_{PRP}$), and the respawned piece arrived with a silhouette whose horizontal extent overlaps the placed piece below, stacking the pair's outlines directly above the pulse's. This is also the picture that justifies the phase ordering: $\tt P_{PRP}$ sorts after the pair precisely so that the flourish paints over the piece it celebrates, never under it.
 
 ![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp-pprp.png)
 
-##### $\tt B_{RRP}, \tt F_{BRP}, \tt S_{PRP}, \tt A_{PRP}, P_{PRP}$
+##### $\tt F_{BRP}, S_{PRP}, A_{PRP}, P_{PRP}, L_{CRP}$
 The fullest tableau a non-clearing landing can produce, and it needs the player's help to exist. A normal landing fires, and within the pulse's 120 ms window, the panel is resized; the next paint re-rasterizes the entire static layer at the new block size, raising $\tt B_{RRP}$ over the full board on top of the still-live quartet of the landing's crud bake, the respawned pair, and the fading pulse. All five outlines coexist for whatever remains of those 120 milliseconds. The one absence is structural rather than circumstantial: $\tt L_{CRP}$ cannot join this picture, because its presence would require a completed-line landing, which is a different family of states entirely.
 
 ![img](https://vault.dconn.dev/projects/javarominoes/fbrp-sprp-aprp-pprp-lcrp.png)
