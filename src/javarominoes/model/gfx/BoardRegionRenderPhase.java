@@ -6,6 +6,7 @@ package javarominoes.model.gfx;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import javarominoes.model.Board;
 import javarominoes.model.GameState;
 
@@ -27,6 +28,11 @@ public class BoardRegionRenderPhase extends AbstractRenderPhase {
     super(gs);
   }
 
+  /**
+   * Every primitive here is bounded by the clip, rather than merely masked by
+   * it. A zone bake redraws the gridlines which bound the zone's cells and no
+   * others; a full bake, whose clip is the whole surface, is unchanged.
+   */
   @Override
   public void draw() {
     if (graphics == null) {
@@ -34,30 +40,40 @@ public class BoardRegionRenderPhase extends AbstractRenderPhase {
     }
     if (bckPix == -1) {
       return;
-    } 
+    }
 
     int gridW = bckPix * Board.WIDTH;
     int gridH = bckPix * Board.HEIGHT;
 
-    // draw black background
+    Rectangle clip = graphics.getClipBounds();
+    if (clip == null) {
+      clip = new Rectangle(0, 0, gridW, gridH);
+    }
+    Rectangle cells = TetrominoGraphics.Render.clippedCells(graphics, bckPix);
+
+    // draw black background, over no more of the surface than is visible
     graphics.setColor(Color.BLACK);
-    graphics.fillRect(0, 0, gridW, gridH);
+    graphics.fillRect(clip.x, clip.y, clip.width, clip.height);
 
     graphics.setColor(Color.DARK_GRAY);
 
-    // horizontal gridlines
-    for (int row = 0; row < Board.HEIGHT; ++row) {
+    // horizontal gridlines, one atop each visible row
+    int lastRow = Math.min(Board.HEIGHT - 1, cells.y + cells.height);
+    for (int row = cells.y; row <= lastRow; ++row) {
       // line drawn from x=0,y=row*blockPixels->x=gridW,y=row*blockPixels
       graphics.drawLine(0, row * bckPix, gridW, row * bckPix);
     }
 
-    // white strip delineating bottom most row
-    graphics.setColor(Color.WHITE);
-    graphics.fill3DRect(0, gridH, gridW, gridH, true);
-    graphics.setColor(Color.DARK_GRAY);
+    // white strip delineating bottom most row, only when it is in view
+    if (clip.y + clip.height > gridH) {
+      graphics.setColor(Color.WHITE);
+      graphics.fill3DRect(0, gridH, gridW, gridH, true);
+      graphics.setColor(Color.DARK_GRAY);
+    }
 
-    // vertical gridlines
-    for (int col = 0; col <= Board.WIDTH; ++col) {
+    // vertical gridlines, one flanking each visible column
+    int lastCol = Math.min(Board.WIDTH, cells.x + cells.width);
+    for (int col = cells.x; col <= lastCol; ++col) {
       graphics.drawLine(col * bckPix, 0, col * bckPix, gridH);
     }
   }

@@ -6,6 +6,7 @@ package javarominoes.model.gfx;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import javarominoes.model.Board;
 import javarominoes.model.GridZone;
@@ -131,14 +132,50 @@ public class TetrominoGraphics {
      * @param bPx
      */
     public static void drawStaticBoardBlocks(Graphics g, Board b, int bPx) {
-      for (int column = 0; column < Board.WIDTH; ++column) {
-        for (int row = 0; row < Board.HEIGHT; ++row) {
+      Rectangle cells = clippedCells(g, bPx);
+      for (int column = cells.x; column < cells.x + cells.width; ++column) {
+        for (int row = cells.y; row < cells.y + cells.height; ++row) {
           if (!b.isFreeBlock(column, row)) {
             g.setColor(getBlockColor(b.getBlockType(column, row)));
             g.fill3DRect(column * bPx, row * bPx, bPx, bPx, true);
           }
         }
       }
+    }
+
+    /**
+     * The board cells which the context's clip is able to show, as a rectangle
+     * in cell coordinates rather than pixels.
+     *
+     * <p>
+     * Setting a clip and then drawing the whole board is not free. Java2D
+     * discards the pixels which fall outside the clip, but only once every
+     * fill3DRect has been issued, and each of those is five primitives. Under
+     * CheerpJ, where AWT is backed by an HTML canvas, an issued primitive costs
+     * a crossing out of WebAssembly whether or not it lands anywhere.</p>
+     *
+     * <p>
+     * Bounding the loop rather than the rasterizer makes a landing's bake
+     * proportional to the piece's footprint instead of to the whole board.</p>
+     *
+     * @author dylan
+     * @param g a context whose clip is either the zone being baked, or the
+     * whole surface
+     * @param bPx block size in pixels
+     * @return the columns and rows worth visiting; the full board when there is
+     * no clip to speak of
+     */
+    static Rectangle clippedCells(Graphics g, int bPx) {
+      Rectangle clip = (g == null || bPx <= 0) ? null : g.getClipBounds();
+      if (clip == null) {
+        return new Rectangle(0, 0, Board.WIDTH, Board.HEIGHT);
+      }
+      int c0 = Math.max(0, Math.floorDiv(clip.x, bPx));
+      int r0 = Math.max(0, Math.floorDiv(clip.y, bPx));
+      int c1 = Math.min(Board.WIDTH - 1, Math.floorDiv(clip.x + clip.width - 1, bPx));
+      int r1 = Math.min(Board.HEIGHT - 1, Math.floorDiv(clip.y + clip.height - 1, bPx));
+
+      return new Rectangle(c0, r0, Math.max(0, c1 - c0 + 1), Math.max(0, r1 - r0 + 1));
     }
 
     /**

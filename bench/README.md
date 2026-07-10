@@ -65,33 +65,36 @@ the platform's ~15.6 ms timer granularity, which swamps the figure sought.
 |---|---|---|---|
 | old `GridPanel.paintComponent` | 557 | 439,740 | 165 us |
 | new `GridPanel.paintComponent` | 41 | 6,272 + a 180,300 px blit | 66 us |
-| new `bakeStaticZone` (per landing) | 517 | 433,468 | 225 us |
+| `bakeStaticZone`, whole board | 512 | 255,264 | 230 us |
+| `bakeStaticZone`, a four-row band | 176 | 61,088 | -- |
 | old `InfoPanel.paintComponent` | -- | -- | 81 us |
-| new `InfoPanel.paintComponent` | -- | -- | 114 us |
+| new `InfoPanel.paintComponent` | -- | -- | 85 us |
 
-The 96 landed blocks cost 480 primitives. The rewrite moved them out of every
-paint and into every landing.
+The 96 landed blocks cost 480 primitives, because `fill3DRect` is five of them.
+The rewrite moved that cost out of every paint and into every landing.
 
-### Per frame, in steady state
+### What the profiling turned up, and what was done about it
 
-`GameController.tick()` calls `repaint()` on the JLayeredPane every 16 ms from
-`TetrisKeyListener`, which dirties the whole 684x601 tree. A `RepaintManager`
-probe confirms it: `tick()` requests `684x601`, while the phased renderer's own
-`repaintZone` requests `60x90`. Swing unions them, so every panel repaints fully
-at 60 Hz and the per-zone clipping never takes effect during play.
+**`tick()` used to dirty the whole tree.** It called `repaint()` on the
+JLayeredPane at every 16 ms input poll. A `RepaintManager` probe showed it
+requesting `684x601` while the phased renderer's own `repaintZone` requested
+`60x90`; Swing unions those, so every panel repainted fully at 60 Hz and the
+per-zone clipping never took effect during play. `tick()` now repaints the
+`InfoPanel` alone, and only when the drop interval has actually moved. The probe
+now reports nothing dirtied.
 
-That is a bug, not a property of the design. What survives it is the part that
-matters: the phase queues still gate the *bake*, so a full-bounds clip blits an
-already-correct `BufferedImage` rather than redrawing 96 blocks.
+**The bake's clip masked work rather than avoiding it.** `bakeStaticZone` set a
+clip and then drew the whole board; Java2D discarded the pixels outside it, but
+only after all 480 primitives had been issued. `drawStaticBoardBlocks` and
+`BoardRegionRenderPhase` now derive their cell range from `getClipBounds()`, so a
+four-row band bakes 176 primitives instead of 512, and a landing's bake is
+proportional to the piece's footprint.
 
-| | old | new |
-|---|---|---|
-| primitives / frame | ~585 | ~117 |
-| EDT us / frame (GridPanel + InfoPanel) | 246 us | 180 us |
-
-So the browser, which bills per primitive, sees ~5x less work; the desktop, which
-bills per pixel, sees ~1.4x. The new `InfoPanel`'s six `Path2D` keycaps ate a
-third of the desktop win.
+**The keycap legend was redrawn 60 times a second.** Six caps are twelve `Path2D`
+fills and twelve strings. It is now baked once into an opaque `BufferedImage`,
+keyed by `(width, height, showControls)`. An opaque cache matters: a translucent
+one measured barely faster than drawing the caps outright, because the blit then
+alpha-composites every pixel.
 
 ## Caveats
 

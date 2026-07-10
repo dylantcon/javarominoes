@@ -126,17 +126,26 @@ public class GameController extends JLayeredPane implements ActionListener {
     this.requestFocusInWindow();
   }
 
-  private void updateTTDInterval() {
-    if (!MIN_TTD_REACHED) {
-      int candidateTTD = infoPanel.deltaTTD();
-      if (TTD <= MIN_TTD) {
-        MIN_TTD_REACHED = true;
-        candidateTTD = MIN_TTD;
-      }
-      TTD = candidateTTD;
-      blockTimer.setDelay(TTD);
-      updateMusicSpeed();
+  /**
+   * @return whether the drop interval moved, and with it the readout which
+   * reports it
+   */
+  private boolean updateTTDInterval() {
+    if (MIN_TTD_REACHED) {
+      return false;
     }
+    int candidateTTD = infoPanel.deltaTTD();
+    if (TTD <= MIN_TTD) {
+      MIN_TTD_REACHED = true;
+      candidateTTD = MIN_TTD;
+    }
+    if (candidateTTD == TTD) {
+      return false;
+    }
+    TTD = candidateTTD;
+    blockTimer.setDelay(TTD);
+    updateMusicSpeed();
+    return true;
   }
 
   private static double speedForDropTime(int ttd) {
@@ -231,9 +240,26 @@ public class GameController extends JLayeredPane implements ActionListener {
     }
   }
 
+  /**
+   * Called by the key listener at every input poll, some sixty times a second.
+   *
+   * <p>
+   * It used to repaint() this JLayeredPane unconditionally, which dirtied the
+   * whole component tree. Swing unions that with the per-zone repaints the
+   * GridPanel issues, so the grid was fully repainted at the poll rate and the
+   * dirty zones never took effect during play. It also redrew the InfoPanel's
+   * keycap legend sixty times a second in order to show a readout that changes
+   * a few dozen times per game.</p>
+   *
+   * <p>
+   * A tick can only change the drop interval. The score repaints the readout
+   * from increaseScore(), and every movement of a piece dispatches its own
+   * render phases, so nothing else here needs a repaint.</p>
+   */
   public void tick() {
-    updateTTDInterval();
-    repaint();
+    if (updateTTDInterval()) {
+      infoPanel.repaint();
+    }
   }
 
   /**
