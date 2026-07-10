@@ -4,9 +4,14 @@
  */
 package javarominoes.model.gfx;
 
+import javarominoes.model.gfx.staging.RenderPhase;
+import javarominoes.model.gfx.staging.AbstractRenderPhase;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.Stroke;
 import java.util.ArrayList;
 import javarominoes.model.Board;
 import javarominoes.model.GridZone;
@@ -44,6 +49,14 @@ public class TetrominoGraphics {
   public final static boolean DEBUG_RENDER_PHASES = false;
 
   /**
+   * Every phase dashes on the same period and takes its own offset into it, so
+   * that coincident borders interleave rather than hide one another. Six phases
+   * at two pixels apiece exactly fill the cycle.
+   */
+  private final static float DASH_ON = 2f;
+  private final static float DASH_PERIOD = 12f;
+
+  /**
    * first item: in-air tetromino GridZone formed from relative union of last
    * and current TetrominoStates, representing the region on the grid that was
    * dirtied. second item: combined GridZone (bounding box) of the current and
@@ -76,6 +89,7 @@ public class TetrominoGraphics {
   /**
    * Hands off every accumulated static dirty zone and empties the buffer, so
    * each zone is baked into the static layer exactly once.
+   * @return 
    */
   public static ArrayList<GridZone> drainDirtyStaticZones() {
     ArrayList<GridZone> drained = new ArrayList<>(dirtyStaticZones);
@@ -86,6 +100,7 @@ public class TetrominoGraphics {
   /**
    * The pending static zones, without consuming them. Only the debug overlay
    * of FixedBlocksRenderPhase wants to look without taking.
+   * @return 
    */
   public static ArrayList<GridZone> peekDirtyStaticZones() {
     return new ArrayList<>(dirtyStaticZones);
@@ -187,7 +202,7 @@ public class TetrominoGraphics {
      * @return the columns and rows worth visiting; the full board when there is
      * no clip to speak of
      */
-    static Rectangle clippedCells(Graphics g, int bPx) {
+    public static Rectangle clippedCells(Graphics g, int bPx) {
       Rectangle clip = (g == null || bPx <= 0) ? null : g.getClipBounds();
       if (clip == null) {
         return new Rectangle(0, 0, Board.WIDTH, Board.HEIGHT);
@@ -322,7 +337,7 @@ public class TetrominoGraphics {
      * @param g
      * @param bPx 
      */
-    private static Color debugColorFor(int phaseId) {
+    public static Color debugColorFor(int phaseId) {
       switch (phaseId) {
         case RenderPhase.Factory.ID_BRRP:
           return FOOTPRINT_BRRP;
@@ -342,55 +357,93 @@ public class TetrominoGraphics {
     }
 
     /**
-     * Outlines a zone in its phase's colour, one pixel outside the blocks it
-     * covers, so that the outline never hides the thing it describes.
+     * The human name of a phase, for the legend.
      *
      * @author dylan
-     * @param g the surface the phase drew onto
-     * @param bPx block size in pixels
-     * @param phaseId the phase which claimed the zone, for its colour
-     * @param z the zone, or null to draw nothing
+     * @param phaseId the phase's bit
+     * @return its simple class name, or "?" for a bit no phase claims
      */
-    public static void outlineZone__Debug(Graphics g, int bPx, int phaseId, GridZone z) {
-      if (!DEBUG_RENDER_PHASES || g == null || z == null || bPx <= 0) {
-        return;
+    public static String debugNameFor(int phaseId) {
+      switch (phaseId) {
+        case RenderPhase.Factory.ID_BRRP:
+          return "BoardRegionRenderPhase";
+        case RenderPhase.Factory.ID_FBRP:
+          return "FixedBlocksRenderPhase";
+        case RenderPhase.Factory.ID_SPRP:
+          return "SilhouettePieceRenderPhase";
+        case RenderPhase.Factory.ID_APRP:
+          return "AirbornePieceRenderPhase";
+        case RenderPhase.Factory.ID_PPRP:
+          return "PiecePlacementRenderPhase";
+        case RenderPhase.Factory.ID_LCRP:
+          return "LineClearRenderPhase";
+        default:
+          return "?";
       }
-      // one pixel outside the blocks, then pulled back onto the surface: a zone
-      // flush with the board's edge would otherwise outline itself off it
-      int x0 = (z.x * bPx) - 1;
-      int y0 = (z.y * bPx) - 1;
-      int x1 = x0 + (z.w * bPx);
-      int y1 = y0 + (z.h * bPx);
-
-      Rectangle clip = g.getClipBounds();
-      if (clip != null) {
-        x0 = Math.max(x0, clip.x);
-        y0 = Math.max(y0, clip.y);
-        x1 = Math.min(x1, clip.x + clip.width - 1);
-        y1 = Math.min(y1, clip.y + clip.height - 1);
-      }
-      if (x1 <= x0 || y1 <= y0) {
-        return;
-      }
-      g.setColor(debugColorFor(phaseId));
-      g.drawRect(x0, y0, x1 - x0, y1 - y0);
     }
 
     /**
-     * The form every phase calls at the end of its own draw(). The zone is
-     * asked for only once the flag is known to be set, so a release build pays
-     * a branch and nothing more.
+     * A dashed stroke, one phase to each slot of a shared cycle.
+     *
+     * <p>
+     * The zones overlap constantly: the silhouette sits beneath the airborne
+     * piece, a placement pulse beneath both. Were every outline solid, the last
+     * one drawn would be the only one seen. Every phase instead dashes on the
+     * same period, and each takes a different offset into it, so six coincident
+     * borders lay their dashes in six disjoint runs of pixels and all six remain
+     * legible. The bit index of the phase's ID is its slot.</p>
      *
      * @author dylan
-     * @param g the surface the phase drew onto
-     * @param bPx block size in pixels
-     * @param phase the phase which has just drawn itself
+     * @param phaseId the phase's bit
+     * @return its stroke
      */
-    public static void outlinePhase__Debug(Graphics g, int bPx, AbstractRenderPhase phase) {
-      if (!DEBUG_RENDER_PHASES || phase == null) {
-        return;
+    private static Stroke debugStrokeFor(int phaseId) {
+      int slot = Integer.numberOfTrailingZeros(phaseId);
+      float phase = (DASH_ON * slot) % DASH_PERIOD;
+      return new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+              10f, new float[]{DASH_ON, DASH_PERIOD - DASH_ON}, phase);
+    }
+
+    /**
+     * Outlines a zone in its phase's colour and dash.
+     *
+     * <p>
+     * The line sits on the innermost ring of pixels the zone owns, its outer
+     * edge tracing the boundary the zone traces. A zone must own every pixel it
+     * paints: an outline drawn one pixel outside would be clipped away on the
+     * two leading edges, and left behind, unerasable, on the two trailing ones,
+     * since no later zone need contain the zone which preceded it.</p>
+     *
+     * @author dylan
+     * @param g the surface to outline upon
+     * @param bPx block size in pixels
+     * @param phaseId the phase which claimed the zone, for its colour and dash
+     * @param z the zone, or null to draw nothing
+     * @return the rectangle outlined, in pixels, or null when nothing was drawn
+     */
+    public static Rectangle outlineZone__Debug(Graphics g, int bPx, int phaseId, GridZone z) {
+      if (!DEBUG_RENDER_PHASES || g == null || z == null || bPx <= 0) {
+        return null;
       }
-      outlineZone__Debug(g, bPx, phase.getRenderPhaseId(), phase.debugZone());
+      if (z.w <= 0 || z.h <= 0) {
+        return null;
+      }
+      Rectangle r = new Rectangle(z.x * bPx, z.y * bPx, z.w * bPx, z.h * bPx);
+
+      g.setColor(debugColorFor(phaseId));
+      if (g instanceof Graphics2D) {
+        Graphics2D g2d = (Graphics2D) g;
+        Stroke prior = g2d.getStroke();
+        try {
+          g2d.setStroke(debugStrokeFor(phaseId));
+          g2d.drawRect(r.x, r.y, r.width - 1, r.height - 1);
+        } finally {
+          g2d.setStroke(prior);
+        }
+      } else {
+        g.drawRect(r.x, r.y, r.width - 1, r.height - 1);
+      }
+      return r;
     }
   }
 }

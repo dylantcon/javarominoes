@@ -8,17 +8,20 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javarominoes.model.Board;
 import javarominoes.model.GridZone;
-import javarominoes.model.gfx.AbstractAnimatedRenderPhase;
-import javarominoes.model.gfx.AbstractRenderPhase;
-import javarominoes.model.gfx.LineClearRenderPhase;
-import javarominoes.model.gfx.RenderPhase;
-import javarominoes.model.gfx.SilhouettePieceRenderPhase;
+import javarominoes.model.gfx.staging.AbstractAnimatedRenderPhase;
+import javarominoes.model.gfx.staging.AbstractRenderPhase;
+import javarominoes.model.gfx.staging.LineClearRenderPhase;
+import javarominoes.model.gfx.staging.RenderPhase;
+import javarominoes.model.gfx.staging.SilhouettePieceRenderPhase;
 import javarominoes.model.gfx.TetrominoGraphics;
 import javarominoes.model.util.SortedInserter;
 import javax.swing.JPanel;
@@ -57,6 +60,20 @@ class GridPanel extends JPanel {
    */
   private BufferedImage pauseCurtain;
   private static final Color CURTAIN_BLOCK = new Color(0x9A9A9A);
+
+  /**
+   * The zones the static phases last claimed. They never draw onto the screen,
+   * so the overlay draws for them, and redraws every paint rather than baking a
+   * box into the layer where no later rebake could reach it.
+   */
+  private final Map<Integer, GridZone> debugStaticZones = new LinkedHashMap<>();
+
+  /**
+   * The phase IDs whose zones were outlined by the last paint, as a bitmask, and
+   * the pixels those outlines occupied.
+   */
+  private int debugVisibleMask = 0;
+  private Rectangle debugOutlineBoundsPx;
   private final Timer animationTimer = new Timer(ANIMATION_TICK_MS, e -> stepAnimations());
   private final BoardPanel out;
 
@@ -90,18 +107,18 @@ class GridPanel extends JPanel {
     queuedRenderPhases.remove(arp);
     switch (arp.getRenderPhaseId()) {
       case RenderPhase.Factory.ID_BRRP:
+        noteDebugStaticZone(arp);
         staticLayer = null; // force a full rebuild on next paint
         repaint();
         break;
       case RenderPhase.Factory.ID_FBRP:
         // asked before the drain, since the drain is what empties it
-        GridZone baked = arp.debugZone();
+        noteDebugStaticZone(arp);
         // bake newly landed blocks into the static layer, zone by zone
         for (GridZone zone : TetrominoGraphics.drainDirtyStaticZones()) {
           bakeStaticZone(zone, bPx);
           repaintZone(zone);
         }
-        outlineIntoStaticLayer(arp.getRenderPhaseId(), baked, bPx);
         break;
       case RenderPhase.Factory.ID_SPRP:
         gz = TetrominoGraphics.getSilhouettePieceZone();
@@ -201,12 +218,28 @@ class GridPanel extends JPanel {
     }
   }
 
+  /**
+   * Dirties the pixels a zone covers, and nothing besides.
+   *
+   * <p>
+   * With the debug overlay up, also the pixels the last paint's outlines
+   * occupied. A zone need not contain the zone which preceded it -- a movement
+   * footprint is the union of the piece's last and current positions, so a piece
+   * travelling steadily leaves each footprint's trailing edge outside the next
+   * one -- and an outline drawn on that trailing edge is beyond the reach of any
+   * repaint clipped to the newer zone. Sweeping the previous outline's bounds in
+   * alongside the new zone erases them, and costs a rectangle union.</p>
+   */
   private void repaintZone(GridZone gz) {
     if (gz == null) {
       return;
     }
     int bPx = getBlockSize();
-    repaint(gz.x * bPx, gz.y * bPx, gz.w * bPx, gz.h * bPx);
+    Rectangle dirty = new Rectangle(gz.x * bPx, gz.y * bPx, gz.w * bPx, gz.h * bPx);
+    if (TetrominoGraphics.DEBUG_RENDER_PHASES && debugOutlineBoundsPx != null) {
+      dirty = dirty.union(debugOutlineBoundsPx);
+    }
+    repaint(dirty.x, dirty.y, dirty.width, dirty.height);
   }
 
   private void rebuildStaticLayer() {
@@ -221,10 +254,11 @@ class GridPanel extends JPanel {
   }
 
   /**
-   * Redraws board background and landed blocks into the static layer,
-   * clipped to the given zone (null bakes everything). The full-board draw
-   * calls stay cheap because the clip discards work outside the zone, and
-   * baking only happens on game events, never per frame.
+   * Redraws board background and landed blocks into the static layer, clipped
+   * to the given zone (null bakes everything). Baking happens only on game
+   * events, never per frame, and the clip now bounds the loops rather than only
+   * the rasterizer, so a landing's bake is the size of the piece.
+   *
    */
   private void bakeStaticZone(GridZone gz, int bPx) {
     if (staticLayer == null) {
@@ -243,21 +277,65 @@ class GridPanel extends JPanel {
   }
 
   /**
-   * The static phases never draw onto the screen, so their debug outlines are
-   * laid into the layer they baked, where they persist until it is rebaked.
-   * That is the honest picture: it shows the region the static layer last had
-   * redrawn, rather than a box which blinks for one frame.
+   * Remembers what a static phase laid claim to, since the overlay draws for it.
+   * BoardRegionRenderPhase and FixedBlocksRenderPhase never reach the screen:
+   * they bake into the layer, and a box baked with them could never be erased by
+   * a later rebake clipped elsewhere.
    */
-  private void outlineIntoStaticLayer(int phaseId, GridZone gz, int bPx) {
-    if (!TetrominoGraphics.DEBUG_RENDER_PHASES || staticLayer == null || gz == null) {
+  private void noteDebugStaticZone(AbstractRenderPhase arp) {
+    if (!TetrominoGraphics.DEBUG_RENDER_PHASES) {
       return;
     }
-    Graphics2D big = staticLayer.createGraphics();
-    try {
-      TetrominoGraphics.Render.outlineZone__Debug(big, bPx, phaseId, gz);
-    } finally {
-      big.dispose();
+    GridZone gz = arp.debugZone();
+    if (gz != null) {
+      debugStaticZones.put(arp.getRenderPhaseId(), gz);
     }
+  }
+
+  /**
+   * Outlines every zone currently claimed, atop everything else, and records
+   * which phases those were so BoardPanel may caption them.
+   *
+   * <p>
+   * Drawn here rather than from each phase's own draw(): the static phases do
+   * not draw to the screen at all, the outlines belong above the pieces they
+   * describe, and one place is the only place that can know the whole set.</p>
+   */
+  private void drawDebugOverlay(Graphics g, int bPx) {
+    if (!TetrominoGraphics.DEBUG_RENDER_PHASES) {
+      return;
+    }
+    int mask = 0;
+    Rectangle bounds = null;
+
+    for (Map.Entry<Integer, GridZone> e : debugStaticZones.entrySet()) {
+      Rectangle r = TetrominoGraphics.Render.outlineZone__Debug(g, bPx, e.getKey(), e.getValue());
+      if (r != null) {
+        mask |= e.getKey();
+        bounds = (bounds == null) ? r : bounds.union(r);
+      }
+    }
+    for (AbstractRenderPhase arp : residentRenderPhases) {
+      Rectangle r = TetrominoGraphics.Render.outlineZone__Debug(g, bPx,
+              arp.getRenderPhaseId(), arp.debugZone());
+      if (r != null) {
+        mask |= arp.getRenderPhaseId();
+        bounds = (bounds == null) ? r : bounds.union(r);
+      }
+    }
+
+    debugOutlineBoundsPx = bounds;
+    if (mask != debugVisibleMask) {
+      debugVisibleMask = mask;
+      out.repaintDebugLegend(); // the caption follows what is on the grid
+    }
+  }
+
+  /**
+   * @return the bits of the phases whose zones the last paint outlined
+   */
+  int debugVisiblePhaseMask() {
+    return debugVisibleMask;
   }
 
   /**
@@ -309,7 +387,8 @@ class GridPanel extends JPanel {
 
   /**
    * Bottom-up: static layer (background + landed blocks) first, then the
-   * resident phases in ID order (silhouette, airborne piece, animations).
+   * resident phases in ID order (silhouette, airborne piece, animations), then
+   * the debug overlay atop the lot.
    */
   @Override
   protected void paintComponent(Graphics g) {
@@ -321,6 +400,11 @@ class GridPanel extends JPanel {
       }
       if (pauseCurtain != null) {
         g.drawImage(pauseCurtain, 0, 0, null);
+        if (debugVisibleMask != 0) {
+          debugVisibleMask = 0; // nothing of the field is on view to caption
+          debugOutlineBoundsPx = null;
+          out.repaintDebugLegend();
+        }
         return;
       }
     }
@@ -336,6 +420,7 @@ class GridPanel extends JPanel {
     for (AbstractRenderPhase arp : residentRenderPhases) {
       arp.withGraphics(g).withBlockPixels(bPx).draw();
     }
+    drawDebugOverlay(g, bPx);
   }
   
 } // end inner class 1 GridPanel

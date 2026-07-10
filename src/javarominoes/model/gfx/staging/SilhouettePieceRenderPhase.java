@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model.gfx;
+package javarominoes.model.gfx.staging;
 
 import java.awt.Color;
 import java.awt.Graphics;
@@ -11,6 +11,7 @@ import javarominoes.model.GameState;
 import javarominoes.model.GridZone;
 import javarominoes.model.Pieces;
 import javarominoes.model.TetrominoState;
+import javarominoes.model.gfx.TetrominoGraphics;
 
 /**
  * Draws the active piece's landing silhouette: a translucent copy of the
@@ -44,7 +45,6 @@ public class SilhouettePieceRenderPhase extends AbstractRenderPhase {
     TetrominoState sil = TetrominoState.Factory.silhouetteCopy(active,
             b.getSilhouetteY(active));
     TetrominoGraphics.Render.drawPiece(graphics, bckPix, sil, SILHOUETTE_COLOR);
-    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
   }
 
   /**

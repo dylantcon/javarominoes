@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model.gfx;
+package javarominoes.model.gfx.staging;
 
 import java.awt.Color;
 import javarominoes.model.Board;
@@ -64,7 +64,6 @@ public class LineClearRenderPhase extends AbstractAnimatedRenderPhase {
       graphics.fillRect(Math.max((wPx / 2) - half - EDGE_PX, 0), yPx, EDGE_PX, hPx);
       graphics.fillRect(Math.min((wPx / 2) + half, wPx - EDGE_PX), yPx, EDGE_PX, hPx);
     }
-    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
   }
 
   @Override

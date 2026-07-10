@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model.gfx;
+package javarominoes.model.gfx.staging;
 
 import java.awt.Color;
 import javarominoes.model.Board;
@@ -10,6 +10,7 @@ import javarominoes.model.GameState;
 import javarominoes.model.GridZone;
 import javarominoes.model.Pieces;
 import javarominoes.model.TetrominoState;
+import javarominoes.model.gfx.TetrominoGraphics;
 
 /**
  * Short pulse over the cells of a just-landed piece, fading out over the
@@ -70,7 +71,6 @@ public class PiecePlacementRenderPhase extends AbstractAnimatedRenderPhase {
         }
       }
     }
-    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
   }
 
   @Override

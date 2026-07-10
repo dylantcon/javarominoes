@@ -20,7 +20,7 @@ import javarominoes.model.TetrominoState;
 import javarominoes.model.control.TetrisKeyListener;
 import chiptunesynth.music.MusicHandler;
 import javarominoes.model.GameState;
-import javarominoes.model.gfx.RenderPhase;
+import javarominoes.model.gfx.staging.RenderPhase;
 import javarominoes.model.util.Pair;
 
 /**

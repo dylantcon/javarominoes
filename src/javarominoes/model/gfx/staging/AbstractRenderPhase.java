@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model.gfx;
+package javarominoes.model.gfx.staging;
 
 import java.awt.Graphics;
 import javarominoes.model.GameState;

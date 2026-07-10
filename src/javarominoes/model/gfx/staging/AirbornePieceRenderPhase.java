@@ -2,11 +2,12 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package javarominoes.model.gfx;
+package javarominoes.model.gfx.staging;
 
 import java.awt.Graphics;
 import javarominoes.model.GameState;
 import javarominoes.model.GridZone;
+import javarominoes.model.gfx.TetrominoGraphics;
 
 /**
  *
@@ -34,7 +35,6 @@ public class AirbornePieceRenderPhase extends AbstractRenderPhase {
     // the override variant positions the piece by its grid coordinates; the
     // 3-arg variant is for positionless previews and draws at the origin
     TetrominoGraphics.Render.drawPiece(graphics, bckPix, gameState.active(), null);
-    TetrominoGraphics.Render.outlinePhase__Debug(graphics, bckPix, this);
   }
 
   /**

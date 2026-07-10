@@ -9,7 +9,7 @@ import javarominoes.GameController;
 import javarominoes.model.Board;
 import javarominoes.model.GridZone;
 import javarominoes.model.TetrominoState;
-import javarominoes.model.gfx.RenderPhase;
+import javarominoes.model.gfx.staging.RenderPhase;
 import javarominoes.model.gfx.TetrominoGraphics;
 import javarominoes.view.BoardPanel;
 
