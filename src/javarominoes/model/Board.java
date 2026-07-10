@@ -140,6 +140,27 @@ public class Board {
   }
 
   /**
+   * The topmost row holding any fixed block, which is to say the crown of the
+   * stack. Computed by scanning rather than kept as a cached field: a cache
+   * would oblige every mutator, present and future, to maintain it, and the
+   * board is two hundred cells asked about once per line clear.
+   *
+   * @author dylan
+   * @return the first populated row from the top, or the board height when no
+   * row is populated
+   */
+  public int highestPopulatedRow() {
+    for (int r = 0; r < height; ++r) {
+      for (int c = 0; c < width; ++c) {
+        if (mBoard[r][c] != POS_FREE) {
+          return r;
+        }
+      }
+    }
+    return height;
+  }
+
+  /**
    * Groups the filled rows into maximal contiguous runs, each expressed as an
    * inclusive top-bottom Pair.
    *

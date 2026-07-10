@@ -22,7 +22,6 @@ import javarominoes.model.gfx.staging.AbstractAnimatedRenderPhase;
 import javarominoes.model.gfx.staging.AbstractRenderPhase;
 import javarominoes.model.gfx.staging.LineClearRenderPhase;
 import javarominoes.model.gfx.staging.RenderPhase;
-import javarominoes.model.gfx.staging.SilhouettePieceRenderPhase;
 import javarominoes.model.gfx.TetrominoGraphics;
 import javarominoes.model.util.SortedInserter;
 import javax.swing.JPanel;
@@ -160,11 +159,14 @@ class GridPanel extends JPanel {
     queuedRenderPhases.remove(arp);
     switch (arp.getRenderPhaseId()) {
       case RenderPhase.Factory.ID_BRRP:
-        // its ghost is raised where it truly draws, inside bakeStaticZone
+        // its ghost is raised where it truly draws, inside rebuildStaticLayer
         staticLayer = null; // force a full rebuild on next paint
         repaint();
         break;
       case RenderPhase.Factory.ID_FBRP:
+        // the phase's claim is asked for before the drain empties what it peeks
+        spawnDebugGhost(arp.getRenderPhaseId(), arp.debugZone(),
+                TetrominoGraphics.DEBUG_GHOST_MS);
         // bake newly landed blocks into the static layer, zone by zone
         for (GridZone zone : TetrominoGraphics.drainDirtyStaticZones()) {
           bakeStaticZone(zone, bPx);
@@ -172,17 +174,8 @@ class GridPanel extends JPanel {
         }
         break;
       case RenderPhase.Factory.ID_SPRP:
-        gz = TetrominoGraphics.getSilhouettePieceZone();
-        if (gz == null) {
-          // no movement footprint recorded (e.g. spawn); use current spot
-          gz = ((SilhouettePieceRenderPhase) arp).currentZone();
-        }
-        makeSoleResident(arp);
-        spawnDebugGhost(arp.getRenderPhaseId(), gz, TetrominoGraphics.DEBUG_GHOST_MS);
-        repaintZone(gz);
-        break;
       case RenderPhase.Factory.ID_APRP:
-        gz = TetrominoGraphics.getActivePieceZone();
+        gz = arp.debugZone();
         makeSoleResident(arp);
         spawnDebugGhost(arp.getRenderPhaseId(), gz, TetrominoGraphics.DEBUG_GHOST_MS);
         repaintZone(gz);
@@ -214,7 +207,7 @@ class GridPanel extends JPanel {
   private void beginAnimation(AbstractAnimatedRenderPhase anim) {
     anim.begin();
     SortedInserter.insertInOrder(residentRenderPhases, anim);
-    spawnDebugGhost(anim.getRenderPhaseId(), anim.getZone(), anim.durationMs());
+    spawnDebugGhost(anim.getRenderPhaseId(), anim.debugZone(), anim.durationMs());
     repaintZone(anim.getZone());
     // only an animation which says so freezes gravity; the block timer's pause
     // accounting keeps the interrupted TTD interval's duration intact. the
@@ -253,6 +246,10 @@ class GridPanel extends JPanel {
         if (anim instanceof LineClearRenderPhase) {
           GridZone rebake = ((LineClearRenderPhase) anim).getRebakeZone();
           bakeStaticZone(rebake, getBlockSize());
+          // the shift moved the blocks, not the board beneath them: the
+          // rebake is the fixed blocks' event, claimed in their colour alone
+          spawnDebugGhost(RenderPhase.Factory.ID_FBRP, rebake,
+                  TetrominoGraphics.DEBUG_GHOST_MS);
           repaintZone(rebake);
         } else {
           repaintZone(anim.getZone());
@@ -306,6 +303,11 @@ class GridPanel extends JPanel {
     }
     staticLayer = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
     bakeStaticZone(null, getBlockSize());
+    // a full rebuild is the board region's own event; the blocks upon it are
+    // merely re-rasterized, and no fixed-blocks claim stands to be outlined
+    spawnDebugGhost(RenderPhase.Factory.ID_BRRP,
+            RenderPhase.Factory.boardRegionRenderPhase(out.gameState).debugZone(),
+            TetrominoGraphics.DEBUG_GHOST_MS);
   }
 
   /**
@@ -323,13 +325,15 @@ class GridPanel extends JPanel {
     try {
       if (gz != null) {
         big.setClip(gz.x * bPx, gz.y * bPx, gz.w * bPx, gz.h * bPx);
+      } else {
+        big.setClip(0, 0, staticLayer.getWidth(), staticLayer.getHeight());
       }
+
       RenderPhase.Factory.boardRegionRenderPhase(big, out.gameState, bPx).draw();
       TetrominoGraphics.Render.drawStaticBoardBlocks(big, out.gameState.getBoardState(), bPx);
     } finally {
       big.dispose();
     }
-    spawnBakeGhosts(gz);
   }
 
   /**
@@ -347,21 +351,6 @@ class GridPanel extends JPanel {
     if (!debugTimer.isRunning()) {
       debugTimer.start();
     }
-  }
-
-  /**
-   * The bake is where BoardRegionRenderPhase and FixedBlocksRenderPhase truly
-   * run, and it is the only place they run: neither ever draws to the screen.
-   * Once at the first paint, once per landing, once per resize, over the zone
-   * being baked and no more of the board than that.
-   */
-  private void spawnBakeGhosts(GridZone gz) {
-    if (!TetrominoGraphics.DEBUG_RENDER_PHASES) {
-      return;
-    }
-    GridZone z = (gz != null) ? gz : GridZone.Factory.rowBand(0, Board.HEIGHT - 1);
-    spawnDebugGhost(RenderPhase.Factory.ID_BRRP, z, TetrominoGraphics.DEBUG_GHOST_MS);
-    spawnDebugGhost(RenderPhase.Factory.ID_FBRP, z, TetrominoGraphics.DEBUG_GHOST_MS);
   }
 
   /**

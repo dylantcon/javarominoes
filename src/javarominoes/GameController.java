@@ -164,7 +164,7 @@ public class GameController extends JLayeredPane implements ActionListener {
     return true;
   }
 
-  private static double speedForDropTime(int ttd) {
+  private static double tempoForDropTime(int ttd) {
     /* drop time starts at INIT_TTD = 700ms, ends at MIN_TTD = 180ms
      first 100ms is intro padding, no speedup. remaining 420ms is 
     split into 8 tiers, mapped below: */
@@ -196,7 +196,7 @@ public class GameController extends JLayeredPane implements ActionListener {
 
   private void updateMusicSpeed() {
     if (!gameOver) {
-      PauseMenuPanel.musicHandler.setSpeed(speedForDropTime(TTD));
+      PauseMenuPanel.musicHandler.setSpeed(tempoForDropTime(TTD));
     }
   }
 

@@ -28,11 +28,19 @@ public class LineClearRenderPhase extends AbstractAnimatedRenderPhase {
 
   private final int top;
   private final int btm;
+  /**
+   * The stack's crown at the moment the clear was declared. Meaningful only
+   * because construction precedes deleteLines: asked any later, the board
+   * would answer with the post-shift crown, rows below where the old stack's
+   * pixels still stand in the static layer.
+   */
+  private final int rebakeTop;
 
   public LineClearRenderPhase(GameState gs, int top, int btm) {
     super(gs, DURATION_MS);
     this.top = top;
     this.btm = btm;
+    this.rebakeTop = gs.getBoardState().highestPopulatedRow();
   }
 
   @Override
@@ -77,11 +85,13 @@ public class LineClearRenderPhase extends AbstractAnimatedRenderPhase {
   }
 
   /**
-   * Deleting rows shifts everything above them down, so the whole region from
-   * the top of the board through the cleared band must be rebaked.
+   * Deleting rows shifts everything above them down, so the region from the
+   * pre-clear stack top through the cleared band must be rebaked. Rows above
+   * the old crown held nothing before the shift and hold nothing after it,
+   * and are left untouched.
    */
   public GridZone getRebakeZone() {
-    return GridZone.Factory.rowBand(0, btm);
+    return GridZone.Factory.rowBand(rebakeTop, btm);
   }
 
   @Override
