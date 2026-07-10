@@ -6,9 +6,12 @@ package javarominoes.view;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -27,13 +30,12 @@ import javarominoes.model.util.SortedInserter;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-
 /**
  * The traditional game grid that is known, loved, and admired by many. Always
- * kept at a size that is within one block of the exact 1:2 (x:y) aspect ratio 
+ * kept at a size that is within one block of the exact 1:2 (x:y) aspect ratio
  * required for perfectly square grid tiles. A white floor fills in what space
  * remains between y=20x-current-block-size and the parent Component's height.
- * 
+ *
  * @author dylan
  */
 class GridPanel extends JPanel {
@@ -41,18 +43,17 @@ class GridPanel extends JPanel {
   private static final int ANIMATION_TICK_MS = 33;
   final List<AbstractRenderPhase> queuedRenderPhases = new ArrayList<>();
   /**
-   * Phases that are redrawn on every paint, in render phase ID order.
-   * Swing gives no guarantee that pixels survive between paints, so
-   * paintComponent must reproduce everything inside the clip each call;
-   * the silhouette and airborne piece stay resident (replaced when a newer
-   * phase of the same ID is consumed), and animated phases stay resident
-   * until finished.
+   * Phases that are redrawn on every paint, in render phase ID order. Swing
+   * gives no guarantee that pixels survive between paints, so paintComponent
+   * must reproduce everything inside the clip each call; the silhouette and
+   * airborne piece stay resident (replaced when a newer phase of the same ID is
+   * consumed), and animated phases stay resident until finished.
    */
   private final List<AbstractRenderPhase> residentRenderPhases = new ArrayList<>();
   /**
-   * Board region background plus all landed blocks, baked once per game
-   * event instead of redrawn per frame. Painted unconditionally as the
-   * bottom layer of every repaint.
+   * Board region background plus all landed blocks, baked once per game event
+   * instead of redrawn per frame. Painted unconditionally as the bottom layer
+   * of every repaint.
    */
   private BufferedImage staticLayer;
   /**
@@ -69,11 +70,31 @@ class GridPanel extends JPanel {
   private final Map<Integer, GridZone> debugStaticZones = new LinkedHashMap<>();
 
   /**
-   * The phase IDs whose zones were outlined by the last paint, as a bitmask, and
-   * the pixels those outlines occupied.
+   * The phase IDs whose zones were outlined by the last paint, as a bitmask,
+   * and the pixels those outlines occupied.
    */
   private int debugVisibleMask = 0;
   private Rectangle debugOutlineBoundsPx;
+
+  // ---- the debug legend, compiled away with the flag
+  private static final Font LEGEND_FONT = new Font("Monospaced", Font.BOLD, 11);
+  private static final Color LEGEND_BACKDROP = new Color(0, 0, 0, 190);
+  private static final int LEGEND_PAD = 6;
+  private static final int LEGEND_DOT_PX = 9;
+  private static final int LEGEND_MAX_W = 320;
+  private static final int LEGEND_MAX_H = 160;
+
+  /**
+   * In painter's depth order, which is ID order, so the legend reads bottom
+   * layer first.
+   */
+  private static final int[] PHASE_IDS = {
+    RenderPhase.Factory.ID_BRRP,
+    RenderPhase.Factory.ID_FBRP,
+    RenderPhase.Factory.ID_SPRP,
+    RenderPhase.Factory.ID_APRP,
+    RenderPhase.Factory.ID_PPRP,
+    RenderPhase.Factory.ID_LCRP,};
   private final Timer animationTimer = new Timer(ANIMATION_TICK_MS, e -> stepAnimations());
   private final BoardPanel out;
 
@@ -224,11 +245,12 @@ class GridPanel extends JPanel {
    * <p>
    * With the debug overlay up, also the pixels the last paint's outlines
    * occupied. A zone need not contain the zone which preceded it -- a movement
-   * footprint is the union of the piece's last and current positions, so a piece
-   * travelling steadily leaves each footprint's trailing edge outside the next
-   * one -- and an outline drawn on that trailing edge is beyond the reach of any
-   * repaint clipped to the newer zone. Sweeping the previous outline's bounds in
-   * alongside the new zone erases them, and costs a rectangle union.</p>
+   * footprint is the union of the piece's last and current positions, so a
+   * piece travelling steadily leaves each footprint's trailing edge outside the
+   * next one -- and an outline drawn on that trailing edge is beyond the reach
+   * of any repaint clipped to the newer zone. Sweeping the previous outline's
+   * bounds in alongside the new zone erases them, and costs a rectangle
+   * union.</p>
    */
   private void repaintZone(GridZone gz) {
     if (gz == null) {
@@ -277,10 +299,10 @@ class GridPanel extends JPanel {
   }
 
   /**
-   * Remembers what a static phase laid claim to, since the overlay draws for it.
-   * BoardRegionRenderPhase and FixedBlocksRenderPhase never reach the screen:
-   * they bake into the layer, and a box baked with them could never be erased by
-   * a later rebake clipped elsewhere.
+   * Remembers what a static phase laid claim to, since the overlay draws for
+   * it. BoardRegionRenderPhase and FixedBlocksRenderPhase never reach the
+   * screen: they bake into the layer, and a box baked with them could never be
+   * erased by a later rebake clipped elsewhere.
    */
   private void noteDebugStaticZone(AbstractRenderPhase arp) {
     if (!TetrominoGraphics.DEBUG_RENDER_PHASES) {
@@ -327,21 +349,85 @@ class GridPanel extends JPanel {
     debugOutlineBoundsPx = bounds;
     if (mask != debugVisibleMask) {
       debugVisibleMask = mask;
-      out.repaintDebugLegend(); // the caption follows what is on the grid
+      repaintDebugLegend(); // the caption follows what is on the grid
     }
   }
 
   /**
-   * @return the bits of the phases whose zones the last paint outlined
+   * Dirties the corner the legend occupies, so a change in the set of outlined
+   * phases reaches the caption even when no zone happens to overlap it.
    */
-  int debugVisiblePhaseMask() {
-    return debugVisibleMask;
+  private void repaintDebugLegend() {
+    if (TetrominoGraphics.DEBUG_RENDER_PHASES) {
+      repaint(0, 0, LEGEND_MAX_W, LEGEND_MAX_H);
+    }
+  }
+
+  /**
+   * A key to the outlines on the grid: one dot per phase, in the phase's own
+   * colour, against its name. Only the phases whose zones the paint just now
+   * outlined appear, so the rows come and go with the board -- the line clear's
+   * entry lasts exactly as long as its animation.
+   *
+   * <p>
+   * Drawn by the grid rather than by BoardPanel, though the corner it occupies
+   * is BoardPanel's too. GridPanel is opaque, so Swing takes it for the root of
+   * any repaint issued against it, and paints it without ever descending through
+   * its parent. A legend painted by the parent would be scrubbed away by the
+   * next zone repaint which touched the pixels beneath it. A component must own
+   * every pixel it paints, exactly as a zone must.</p>
+   */
+  private void drawDebugLegend(Graphics g) {
+    if (!TetrominoGraphics.DEBUG_RENDER_PHASES || debugVisibleMask == 0) {
+      return;
+    }
+    Graphics2D g2d = (Graphics2D) g.create();
+    try {
+      g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+              RenderingHints.VALUE_ANTIALIAS_ON);
+      g2d.setFont(LEGEND_FONT);
+      FontMetrics fm = g2d.getFontMetrics();
+
+      int rows = 0;
+      int textW = 0;
+      for (int id : PHASE_IDS) {
+        if ((debugVisibleMask & id) != 0) {
+          ++rows;
+          textW = Math.max(textW, fm.stringWidth(TetrominoGraphics.Render.debugNameFor(id)));
+        }
+      }
+      int rowH = Math.max(fm.getHeight(), LEGEND_DOT_PX + 2);
+      int boxW = LEGEND_PAD * 3 + LEGEND_DOT_PX + textW;
+      int boxH = LEGEND_PAD * 2 + rows * rowH;
+
+      g2d.setColor(LEGEND_BACKDROP);
+      g2d.fillRect(LEGEND_PAD, LEGEND_PAD, boxW, boxH);
+
+      int y = LEGEND_PAD * 2;
+      for (int id : PHASE_IDS) {
+        if ((debugVisibleMask & id) == 0) {
+          continue;
+        }
+        int cy = y + (rowH - LEGEND_DOT_PX) / 2;
+        g2d.setColor(TetrominoGraphics.Render.debugColorFor(id));
+        g2d.fillOval(LEGEND_PAD * 2, cy, LEGEND_DOT_PX, LEGEND_DOT_PX);
+        g2d.setColor(Color.BLACK);
+        g2d.drawOval(LEGEND_PAD * 2, cy, LEGEND_DOT_PX, LEGEND_DOT_PX);
+
+        g2d.setColor(Color.WHITE);
+        g2d.drawString(TetrominoGraphics.Render.debugNameFor(id),
+                LEGEND_PAD * 2 + LEGEND_DOT_PX + LEGEND_PAD, y + fm.getAscent());
+        y += rowH;
+      }
+    } finally {
+      g2d.dispose();
+    }
   }
 
   /**
    * A curtain of featureless grey blocks, drawn in place of the board while the
-   * pause menu is up. The original game hides the field for the same reason:
-   * a paused board is a board the player may study at leisure.
+   * pause menu is up. The original game hides the field for the same reason: a
+   * paused board is a board the player may study at leisure.
    *
    * <p>
    * Baked once per size. It never changes, having nothing to say about the
@@ -403,7 +489,7 @@ class GridPanel extends JPanel {
         if (debugVisibleMask != 0) {
           debugVisibleMask = 0; // nothing of the field is on view to caption
           debugOutlineBoundsPx = null;
-          out.repaintDebugLegend();
+          repaintDebugLegend();
         }
         return;
       }
@@ -421,6 +507,7 @@ class GridPanel extends JPanel {
       arp.withGraphics(g).withBlockPixels(bPx).draw();
     }
     drawDebugOverlay(g, bPx);
+    drawDebugLegend(g);
   }
-  
+
 } // end inner class 1 GridPanel
