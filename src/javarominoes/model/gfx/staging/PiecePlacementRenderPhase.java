@@ -22,8 +22,8 @@ import javarominoes.model.gfx.TetrominoGraphics;
  */
 public class PiecePlacementRenderPhase extends AbstractAnimatedRenderPhase {
 
-  private static final int DURATION_MS = 100;
-  private static final int PEAK_ALPHA = 80;
+  private static final int DURATION_MS = 120;
+  private static final int PEAK_ALPHA = 100;
   private static final int WHITE_CHANNEL = 0xFF;
 
   private final TetrominoState landed;
@@ -39,19 +39,19 @@ public class PiecePlacementRenderPhase extends AbstractAnimatedRenderPhase {
     super(gs, DURATION_MS);
     this.landed = landed;
     this.flash = landed == null ? Color.WHITE
-            : meanWithWhite(TetrominoGraphics.Render.getBlockColor(landed.tyRot.f + 1));
+            : mixWithWhite(TetrominoGraphics.Render.getBlockColor(landed.tyRot.f + 1));
   }
 
   /**
    * @param c a piece colour, drawn from the 1-indexed table in
    * {@link TetrominoGraphics.Render#getBlockColor(int)}. A TetrominoState's
    * type is 0-indexed, hence the increment at the call site
-   * @return the mean of that colour and white, opaque
+   * @return the average of one part color and two parts white, opaque
    */
-  private static Color meanWithWhite(Color c) {
-    return new Color((c.getRed() + WHITE_CHANNEL) / 2,
-            (c.getGreen() + WHITE_CHANNEL) / 2,
-            (c.getBlue() + WHITE_CHANNEL) / 2);
+  private static Color mixWithWhite(Color c) {
+    return new Color((c.getRed() + 2 * WHITE_CHANNEL) / 3,
+            (c.getGreen() + 2 * WHITE_CHANNEL) / 3,
+            (c.getBlue() + 2 * WHITE_CHANNEL) / 3);
   }
 
   @Override
