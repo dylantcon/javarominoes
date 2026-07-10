@@ -84,7 +84,7 @@ Across the two abstract classes, I have imposed a common natural ordering which 
 ##### `abstract class AbstractRenderPhase`
 
 ###### 1. `BoardRegionRenderPhase` (BRRP)
-The first phase in the `Comparable`-based natural ordering of the subclasses of `AbstractRenderPhase`. This render phase does not need any associated `GameState` object to perform its task, as it is only delegated to drawing the game grid as described by static constants defined in `Board`. This is staged automatically by Swing whenever the game's `BoardPanel` gets resized, which is accomplished using a `ComponentListener`.
+The first phase in the `Comparable`-based natural ordering of the subclasses of `AbstractRenderPhase`. This render phase delegated to drawing the game grid as described by static constants defined in `Board`, in its entirety, in addition to all active GameState. This is staged automatically by Swing whenever the game's `BoardPanel` gets resized, which is accomplished using a `ComponentListener`.
 ###### 2. `FixedBlocksRenderPhase` (FBRP)
 The second phase in the `Comparable`-based natural ordering of the subclasses of `AbstractRenderPhase`. This render phase requires `GameState` to accomplish its main directive: to use the bounding box information accumulated in static buffers in `TetrominoGraphics` to efficiently portray the most recent, up-to-date state of the `Board` object that encodes the placed piece data (the position of each block, and its color) in its $20 \times 10$ matrix of integers.
 ###### 3. `SilhouettePieceRenderPhase` (SPRP)
